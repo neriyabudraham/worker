@@ -20,10 +20,10 @@
     
     /* Header */
     .header {
-      background: rgba(255,255,255,0.9);
+      background: rgba(255,255,255,0.95);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid #e2e8f0;
-      padding: 0.875rem 1.5rem;
+      padding: 0.75rem 1.5rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -49,6 +49,7 @@
       color: #64748b;
       cursor: pointer;
       transition: all 0.2s;
+      text-decoration: none;
     }
     .back-btn:hover {
       background: #f1f5f9;
@@ -58,6 +59,12 @@
     .flow-info {
       display: flex;
       flex-direction: column;
+    }
+    
+    .flow-name-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
     
     .flow-name-input {
@@ -73,6 +80,11 @@
     }
     .flow-name-input:hover { background: #f1f5f9; }
     .flow-name-input:focus { outline: none; background: #e0e7ff; }
+    
+    .edit-icon {
+      color: #94a3b8;
+      font-size: 0.875rem;
+    }
     
     .flow-type-badge {
       font-size: 0.75rem;
@@ -160,37 +172,73 @@
       overflow: hidden;
     }
     
-    /* Sidebar - Node Palette */
-    .sidebar {
+    /* Right Panel - Node Palette or Node Editor */
+    .right-panel {
       width: 340px;
       background: white;
       border-left: 1px solid #e2e8f0;
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
+      overflow: hidden;
     }
     
-    .sidebar-header {
+    .panel-header {
       padding: 1.25rem 1.5rem;
       border-bottom: 1px solid #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
-    .sidebar-header h3 {
+    .panel-header h3 {
       font-size: 1.125rem;
       font-weight: 700;
       color: #1e293b;
-      margin-bottom: 0.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
     }
-    .sidebar-header p {
+    .panel-header p {
       font-size: 0.875rem;
+      color: #64748b;
+      margin-top: 0.25rem;
+    }
+    
+    .panel-header-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+    
+    .close-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .close-btn:hover {
+      background: #f1f5f9;
       color: #64748b;
     }
     
-    .node-palette {
-      padding: 1rem;
+    .panel-content {
+      padding: 1rem 1.5rem;
       overflow-y: auto;
       flex: 1;
     }
     
+    /* Node Palette */
     .node-item {
       display: flex;
       align-items: center;
@@ -209,6 +257,11 @@
       transform: translateX(-4px);
     }
     .node-item:active { cursor: grabbing; }
+    .node-item.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
     
     .node-item-icon {
       width: 48px;
@@ -223,20 +276,9 @@
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
     
-    .node-item-content {
-      flex: 1;
-      min-width: 0;
-    }
-    .node-item-name {
-      font-weight: 600;
-      color: #1e293b;
-      font-size: 0.95rem;
-      margin-bottom: 0.125rem;
-    }
-    .node-item-desc {
-      font-size: 0.8rem;
-      color: #64748b;
-    }
+    .node-item-content { flex: 1; min-width: 0; }
+    .node-item-name { font-weight: 600; color: #1e293b; font-size: 0.95rem; margin-bottom: 0.125rem; }
+    .node-item-desc { font-size: 0.8rem; color: #64748b; }
     
     .node-item-arrow {
       color: #cbd5e1;
@@ -248,89 +290,7 @@
       transform: translateX(-4px);
     }
     
-    /* Canvas */
-    .canvas-container {
-      flex: 1;
-      padding: 1rem;
-      display: flex;
-      flex-direction: column;
-    }
-    
-    .canvas-wrapper {
-      flex: 1;
-      background: rgba(255,255,255,0.5);
-      backdrop-filter: blur(8px);
-      border-radius: 20px;
-      border: 1px solid #e2e8f0;
-      box-shadow: inset 0 2px 8px rgba(0,0,0,0.02);
-      overflow: hidden;
-    }
-    
-    #flow-canvas {
-      width: 100%;
-      height: 100%;
-    }
-    
-    /* Editor Panel */
-    .editor-panel {
-      width: 360px;
-      background: white;
-      border-right: 1px solid #e2e8f0;
-      display: none;
-      flex-direction: column;
-      flex-shrink: 0;
-      box-shadow: -4px 0 20px rgba(0,0,0,0.05);
-    }
-    .editor-panel.show { display: flex; }
-    
-    .editor-header {
-      padding: 1.25rem 1.5rem;
-      border-bottom: 1px solid #f1f5f9;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .editor-header h3 {
-      font-size: 1rem;
-      font-weight: 600;
-      color: #1e293b;
-      display: flex;
-      align-items: center;
-      gap: 0.625rem;
-    }
-    .editor-header-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-    }
-    .editor-close {
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: none;
-      border: none;
-      color: #94a3b8;
-      cursor: pointer;
-      border-radius: 8px;
-      transition: all 0.2s;
-    }
-    .editor-close:hover {
-      background: #f1f5f9;
-      color: #64748b;
-    }
-    
-    .editor-content {
-      padding: 1.5rem;
-      overflow-y: auto;
-      flex: 1;
-    }
-    
+    /* Editor Form */
     .form-group {
       margin-bottom: 1.25rem;
     }
@@ -368,14 +328,14 @@
       color: #94a3b8;
     }
     
-    .editor-actions {
+    .panel-actions {
       padding: 1rem 1.5rem;
       border-top: 1px solid #f1f5f9;
       display: flex;
       gap: 0.75rem;
       background: #fafafa;
     }
-    .editor-actions .btn {
+    .panel-actions .btn {
       flex: 1;
       justify-content: center;
       padding: 0.75rem 1rem;
@@ -385,8 +345,10 @@
       color: #dc2626;
       border: 1px solid #fecaca;
     }
-    .btn-delete:hover {
-      background: #fee2e2;
+    .btn-delete:hover { background: #fee2e2; }
+    .btn-delete:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
     }
     .btn-apply {
       background: linear-gradient(135deg, #6366f1, #8b5cf6);
@@ -398,7 +360,76 @@
       box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
     }
     
-    /* ReactFlow Custom Nodes */
+    /* Canvas */
+    .canvas-container {
+      flex: 1;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .canvas-wrapper {
+      flex: 1;
+      background: rgba(255,255,255,0.5);
+      backdrop-filter: blur(8px);
+      border-radius: 20px;
+      border: 1px solid #e2e8f0;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.02);
+      overflow: hidden;
+      position: relative;
+    }
+    
+    #flow-canvas {
+      width: 100%;
+      height: 100%;
+    }
+    
+    /* Context Menu */
+    .context-menu {
+      position: fixed;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      border: 1px solid #e2e8f0;
+      z-index: 1000;
+      min-width: 180px;
+      padding: 0.5rem;
+      display: none;
+    }
+    .context-menu.show { display: block; }
+    
+    .context-menu-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: #374151;
+      transition: all 0.15s;
+    }
+    .context-menu-item:hover {
+      background: #f1f5f9;
+    }
+    .context-menu-item.danger { color: #dc2626; }
+    .context-menu-item.danger:hover { background: #fef2f2; }
+    .context-menu-item.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+    .context-menu-item i {
+      width: 18px;
+      text-align: center;
+    }
+    .context-menu-divider {
+      height: 1px;
+      background: #e2e8f0;
+      margin: 0.5rem 0;
+    }
+    
+    /* ReactFlow Custom Styles */
     .react-flow__node {
       border-radius: 16px !important;
       font-family: 'Heebo', sans-serif !important;
@@ -497,16 +528,11 @@
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
-    .loading-text {
-      color: #64748b;
-      font-size: 0.925rem;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    .loading-text { color: #64748b; font-size: 0.925rem; }
+    @keyframes spin { to { transform: rotate(360deg); } }
     
-    /* Saved notification */
-    .saved-toast {
+    /* Toast */
+    .toast {
       position: fixed;
       bottom: 2rem;
       left: 50%;
@@ -524,7 +550,7 @@
       transition: all 0.3s ease;
       z-index: 1000;
     }
-    .saved-toast.show {
+    .toast.show {
       opacity: 1;
       transform: translateX(-50%) translateY(0);
     }
@@ -536,16 +562,36 @@
     <div class="loading-text">טוען תהליך...</div>
   </div>
 
-  <div class="saved-toast" id="saved-toast">
+  <div class="toast" id="toast">
     <i class="fa-solid fa-check-circle"></i>
-    נשמר בהצלחה!
+    <span id="toast-text">נשמר בהצלחה!</span>
+  </div>
+
+  <!-- Context Menu -->
+  <div class="context-menu" id="context-menu">
+    <div class="context-menu-item" id="ctx-edit" onclick="contextAction('edit')">
+      <i class="fa-solid fa-edit"></i>
+      <span>עריכה</span>
+    </div>
+    <div class="context-menu-item" id="ctx-duplicate" onclick="contextAction('duplicate')">
+      <i class="fa-solid fa-copy"></i>
+      <span>שכפל</span>
+    </div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-item danger" id="ctx-delete" onclick="contextAction('delete')">
+      <i class="fa-solid fa-trash"></i>
+      <span>מחק</span>
+    </div>
   </div>
 
   <div class="header">
     <div class="header-right">
-      <a href="/builder/" class="back-btn"><i class="fa-solid fa-arrow-right"></i></a>
+      <a href="/builder" class="back-btn"><i class="fa-solid fa-arrow-right"></i></a>
       <div class="flow-info">
-        <input type="text" class="flow-name-input" id="flow-name" value="טוען..." onchange="markUnsaved()">
+        <div class="flow-name-wrapper">
+          <input type="text" class="flow-name-input" id="flow-name" value="טוען..." onchange="markUnsaved()">
+          <i class="fa-solid fa-pen edit-icon"></i>
+        </div>
         <span class="flow-type-badge" id="flow-type-badge">תהליך</span>
       </div>
       <div class="status-badge" id="status-badge">
@@ -566,14 +612,39 @@
   </div>
 
   <div class="main-content">
-    <!-- Right Sidebar - Node Palette -->
-    <div class="sidebar" id="palette-sidebar">
-      <div class="sidebar-header">
-        <h3>הוסף רכיב</h3>
-        <p>גרור או לחץ להוספה</p>
+    <!-- Right Panel -->
+    <div class="right-panel" id="right-panel">
+      <!-- Palette View (default) -->
+      <div id="palette-view">
+        <div class="panel-header">
+          <div>
+            <h3>הוסף רכיב</h3>
+            <p>גרור או לחץ להוספה</p>
+          </div>
+        </div>
+        <div class="panel-content" id="node-palette"></div>
       </div>
-      <div class="node-palette" id="node-palette">
-        <!-- Nodes injected by JS -->
+      
+      <!-- Editor View -->
+      <div id="editor-view" style="display: none; height: 100%; flex-direction: column;">
+        <div class="panel-header">
+          <h3>
+            <span class="panel-header-icon" id="editor-icon"><i class="fa-solid fa-edit"></i></span>
+            <span id="editor-title">עריכת רכיב</span>
+          </h3>
+          <button class="close-btn" onclick="closeEditor()"><i class="fa-solid fa-times"></i></button>
+        </div>
+        <div class="panel-content" id="editor-content"></div>
+        <div class="panel-actions">
+          <button class="btn btn-delete" id="delete-btn" onclick="deleteSelectedNode()">
+            <i class="fa-solid fa-trash"></i>
+            <span>מחק</span>
+          </button>
+          <button class="btn btn-apply" onclick="applyNodeChanges()">
+            <i class="fa-solid fa-check"></i>
+            <span>החל</span>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -583,33 +654,9 @@
         <div id="flow-canvas"></div>
       </div>
     </div>
-
-    <!-- Left Panel - Node Editor -->
-    <div class="editor-panel" id="editor-panel">
-      <div class="editor-header">
-        <h3>
-          <span class="editor-header-icon" id="editor-icon"><i class="fa-solid fa-edit"></i></span>
-          <span id="editor-title">עריכת רכיב</span>
-        </h3>
-        <button class="editor-close" onclick="closeEditor()"><i class="fa-solid fa-times"></i></button>
-      </div>
-      <div class="editor-content" id="editor-content">
-        <!-- Dynamic content -->
-      </div>
-      <div class="editor-actions">
-        <button class="btn btn-delete" onclick="deleteSelectedNode()">
-          <i class="fa-solid fa-trash"></i>
-          <span>מחק</span>
-        </button>
-        <button class="btn btn-apply" onclick="applyNodeChanges()">
-          <i class="fa-solid fa-check"></i>
-          <span>החל שינויים</span>
-        </button>
-      </div>
-    </div>
   </div>
 
-  <!-- ReactFlow (using older reactflow package with UMD support) -->
+  <!-- ReactFlow -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/reactflow@11.11.4/dist/umd/index.js"></script>
@@ -627,23 +674,27 @@
     const applyEdgeChanges = window.ReactFlow.applyEdgeChanges;
     const MarkerType = window.ReactFlow.MarkerType;
 
+    // State
     let flowId = null;
     let flowData = null;
     let hasUnsaved = false;
     let reactFlowInstance = null;
     let selectedNodeId = null;
+    let contextMenuNode = null;
     let nodesState = [];
     let edgesState = [];
     let setNodesFunc = null;
     let setEdgesFunc = null;
 
-    // Node type definitions
+    // Node type configs
     const nodeTypeConfigs = {
       trigger: { 
         icon: 'fa-bolt', 
         color: '#a855f7', 
         title: 'טריגר',
-        desc: 'התחלת התהליך'
+        desc: 'התחלת התהליך',
+        canDelete: false,
+        canDuplicate: false
       },
       message: { 
         icon: 'fa-comment', 
@@ -677,19 +728,28 @@
       }
     };
 
-    // Get flow ID from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    flowId = urlParams.get('id');
+    // Get flow ID from URL path
+    function getFlowIdFromPath() {
+      const pathParts = window.location.pathname.split('/');
+      const editorIndex = pathParts.indexOf('editor');
+      if (editorIndex !== -1 && pathParts[editorIndex + 1]) {
+        return pathParts[editorIndex + 1];
+      }
+      // Fallback to query param
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('id');
+    }
 
+    flowId = getFlowIdFromPath();
     if (!flowId) {
-      window.location.href = '/builder/';
+      window.location.href = '/builder';
     }
 
     // Render node palette
     function renderPalette() {
       const palette = document.getElementById('node-palette');
       palette.innerHTML = Object.entries(nodeTypeConfigs).map(([type, config]) => `
-        <div class="node-item" draggable="true" data-type="${type}">
+        <div class="node-item ${type === 'trigger' ? 'disabled' : ''}" draggable="${type !== 'trigger'}" data-type="${type}">
           <div class="node-item-icon" style="background: ${config.color};">
             <i class="fa-solid ${config.icon}"></i>
           </div>
@@ -701,8 +761,7 @@
         </div>
       `).join('');
 
-      // Add drag events
-      palette.querySelectorAll('.node-item').forEach(item => {
+      palette.querySelectorAll('.node-item:not(.disabled)').forEach(item => {
         item.addEventListener('dragstart', (e) => {
           e.dataTransfer.setData('nodeType', item.dataset.type);
           e.dataTransfer.effectAllowed = 'move';
@@ -713,7 +772,7 @@
       });
     }
 
-    // Load flow data
+    // Load flow
     async function loadFlow() {
       try {
         const res = await fetch(`/api/flows/${flowId}`);
@@ -721,6 +780,7 @@
         flowData = await res.json();
         
         document.getElementById('flow-name').value = flowData.name;
+        document.title = `${flowData.name} - עריכת תהליך`;
         
         const typeLabels = { raffle: 'הגרלה', campaign: 'קמפיין', support: 'תמיכה', custom: 'מותאם אישית' };
         document.getElementById('flow-type-badge').textContent = typeLabels[flowData.flow_type] || flowData.flow_type || 'תהליך';
@@ -728,7 +788,6 @@
         updateStatusBadge();
         updateToggleButton();
         
-        // Load canvas data
         if (flowData.canvas_data) {
           nodesState = flowData.canvas_data.nodes || [];
           edgesState = flowData.canvas_data.edges || [];
@@ -740,14 +799,14 @@
       } catch (err) {
         console.error(err);
         alert('שגיאה בטעינת התהליך');
-        window.location.href = '/builder/';
+        window.location.href = '/builder';
       }
     }
 
     function updateStatusBadge() {
       const badge = document.getElementById('status-badge');
       if (hasUnsaved) {
-        badge.innerHTML = '<span class="dot"></span><span>שינויים לא שמורים</span>';
+        badge.innerHTML = '<span class="dot"></span><span>שינויים לא נשמרו</span>';
         badge.className = 'status-badge unsaved';
       } else if (flowData.is_active) {
         badge.innerHTML = '<span class="dot"></span><span>פעיל</span>';
@@ -775,8 +834,9 @@
       document.getElementById('save-btn').disabled = false;
     }
 
-    function showSavedToast() {
-      const toast = document.getElementById('saved-toast');
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toast-text').textContent = message;
       toast.classList.add('show');
       setTimeout(() => toast.classList.remove('show'), 3000);
     }
@@ -802,7 +862,7 @@
         hasUnsaved = false;
         updateStatusBadge();
         document.getElementById('save-btn').disabled = true;
-        showSavedToast();
+        showToast('נשמר בהצלחה!');
       } catch (err) {
         alert('שגיאה בשמירה');
       }
@@ -841,7 +901,7 @@
     }
 
     function addNodeToCanvas(type) {
-      if (!setNodesFunc) return;
+      if (!setNodesFunc || type === 'trigger') return;
       
       const config = nodeTypeConfigs[type];
       const newNode = {
@@ -853,189 +913,129 @@
       
       setNodesFunc(nodes => [...nodes, newNode]);
       markUnsaved();
+      
+      // Open editor for new node
+      setTimeout(() => openEditor(newNode), 100);
     }
 
-    // ReactFlow Component
-    function FlowCanvas() {
-      const [nodes, setNodes] = useState(nodesState);
-      const [edges, setEdges] = useState(edgesState);
-      const reactFlowWrapper = useRef(null);
-
-      useEffect(() => {
-        setNodesFunc = setNodes;
-        setEdgesFunc = setEdges;
-      }, []);
-
-      useEffect(() => { nodesState = nodes; }, [nodes]);
-      useEffect(() => { edgesState = edges; }, [edges]);
-
-      const onNodesChange = useCallback((changes) => {
-        setNodes((nds) => applyRFNodeChanges(changes, nds));
-        markUnsaved();
-      }, []);
-
-      const onEdgesChange = useCallback((changes) => {
-        setEdges((eds) => applyEdgeChanges(changes, eds));
-        markUnsaved();
-      }, []);
-
-      const onConnect = useCallback((connection) => {
-        const edge = {
-          ...connection,
-          id: `edge_${Date.now()}`,
-          type: 'smoothstep',
-          animated: true,
-          markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15 }
-        };
-        setEdges((eds) => addEdge(edge, eds));
-        markUnsaved();
-      }, []);
-
-      const onNodeClick = useCallback((event, node) => {
-        selectedNodeId = node.id;
-        openEditor(node);
-      }, []);
-
-      const onInit = useCallback((instance) => {
-        reactFlowInstance = instance;
-      }, []);
-
-      const onDrop = useCallback((event) => {
-        event.preventDefault();
-        const type = event.dataTransfer.getData('nodeType');
-        if (!type || !reactFlowInstance) return;
-
-        const position = reactFlowInstance.screenToFlowPosition({
-          x: event.clientX,
-          y: event.clientY
-        });
-
-        const config = nodeTypeConfigs[type];
-        const newNode = {
-          id: createNodeId(),
-          type,
-          position,
-          data: { label: config.title, ...getDefaultNodeData(type) }
-        };
-
-        setNodes((nds) => [...nds, newNode]);
-        markUnsaved();
-      }, []);
-
-      const onDragOver = useCallback((event) => {
-        event.preventDefault();
-        event.dataTransfer.dropEffect = 'move';
-      }, []);
-
-      const CustomNode = ({ data, type }) => {
-        const config = nodeTypeConfigs[type] || {};
-        const content = getNodeContent(type, data);
-        
-        return React.createElement('div', { className: 'custom-node' },
-          React.createElement('div', { className: 'node-header' },
-            React.createElement('div', { 
-              className: 'node-icon', 
-              style: { background: config.color } 
-            }, React.createElement('i', { className: `fa-solid ${config.icon}` })),
-            React.createElement('span', { className: 'node-title' }, data.label || config.title)
-          ),
-          content && React.createElement('div', { className: 'node-content' }, content)
-        );
-      };
-
-      const nodeTypes = {
-        trigger: (props) => React.createElement(CustomNode, { ...props, type: 'trigger' }),
-        message: (props) => React.createElement(CustomNode, { ...props, type: 'message' }),
-        condition: (props) => React.createElement(CustomNode, { ...props, type: 'condition' }),
-        delay: (props) => React.createElement(CustomNode, { ...props, type: 'delay' }),
-        action: (props) => React.createElement(CustomNode, { ...props, type: 'action' }),
-        database: (props) => React.createElement(CustomNode, { ...props, type: 'database' })
-      };
-
-      return React.createElement('div', { 
-        ref: reactFlowWrapper, 
-        style: { width: '100%', height: '100%' },
-        onDrop,
-        onDragOver
-      },
-        React.createElement(ReactFlow, {
-          nodes,
-          edges,
-          onNodesChange,
-          onEdgesChange,
-          onConnect,
-          onNodeClick,
-          onInit,
-          nodeTypes,
-          fitView: true,
-          snapToGrid: true,
-          snapGrid: [20, 20],
-          defaultEdgeOptions: {
-            type: 'smoothstep',
-            animated: true,
-            style: { strokeWidth: 2, stroke: '#94a3b8' },
-            markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12, color: '#94a3b8' }
-          },
-          connectionLineStyle: { strokeWidth: 2, stroke: '#6366f1' },
-          minZoom: 0.3,
-          maxZoom: 2
-        },
-          React.createElement(Controls, { position: 'bottom-left', showInteractive: false }),
-          React.createElement(Background, { color: '#cbd5e1', gap: 20, size: 1.5 })
-        )
-      );
-    }
-
-    function getNodeContent(type, data) {
-      switch(type) {
-        case 'trigger':
-          return data.keyword ? `מילת מפתח: ${data.keyword}` : 'כל הודעה';
-        case 'message':
-          return data.text ? (data.text.length > 35 ? data.text.substring(0, 35) + '...' : data.text) : 'הודעה ריקה';
-        case 'condition':
-          return data.conditions?.[0]?.variable || 'ללא תנאי מוגדר';
-        case 'delay':
-          const units = { seconds: 'שניות', minutes: 'דקות', hours: 'שעות' };
-          return `${data.duration} ${units[data.unit] || data.unit}`;
-        case 'action':
-          const actions = { setVariable: 'הגדר משתנה', addTag: 'הוסף תג', removeTag: 'הסר תג' };
-          return actions[data.actionType] || data.actionType;
-        case 'database':
-          const ops = { addParticipant: 'הוסף משתתף', addCard: 'הוסף כרטיס', query: 'שאילתת SQL' };
-          return ops[data.operation] || data.operation;
-        default:
-          return '';
+    // Context Menu
+    function showContextMenu(e, node) {
+      e.preventDefault();
+      contextMenuNode = node;
+      
+      const config = nodeTypeConfigs[node.type] || {};
+      const menu = document.getElementById('context-menu');
+      
+      // Update menu items based on node type
+      const deleteItem = document.getElementById('ctx-delete');
+      const duplicateItem = document.getElementById('ctx-duplicate');
+      
+      if (config.canDelete === false) {
+        deleteItem.classList.add('disabled');
+      } else {
+        deleteItem.classList.remove('disabled');
       }
+      
+      if (config.canDuplicate === false) {
+        duplicateItem.classList.add('disabled');
+      } else {
+        duplicateItem.classList.remove('disabled');
+      }
+      
+      menu.style.left = e.clientX + 'px';
+      menu.style.top = e.clientY + 'px';
+      menu.classList.add('show');
     }
 
-    function renderReactFlow() {
-      const container = document.getElementById('flow-canvas');
-      const root = ReactDOM.createRoot(container);
-      root.render(React.createElement(FlowCanvas));
+    function hideContextMenu() {
+      document.getElementById('context-menu').classList.remove('show');
+      contextMenuNode = null;
     }
+
+    function contextAction(action) {
+      if (!contextMenuNode) return;
+      
+      switch(action) {
+        case 'edit':
+          openEditor(contextMenuNode);
+          break;
+        case 'duplicate':
+          duplicateNode(contextMenuNode);
+          break;
+        case 'delete':
+          deleteNode(contextMenuNode.id);
+          break;
+      }
+      
+      hideContextMenu();
+    }
+
+    function duplicateNode(node) {
+      const config = nodeTypeConfigs[node.type] || {};
+      if (config.canDuplicate === false) return;
+      
+      const newNode = {
+        id: createNodeId(),
+        type: node.type,
+        position: { x: node.position.x + 50, y: node.position.y + 50 },
+        data: { ...node.data }
+      };
+      
+      setNodesFunc(nodes => [...nodes, newNode]);
+      markUnsaved();
+      showToast('הרכיב שוכפל');
+    }
+
+    function deleteNode(nodeId) {
+      const node = nodesState.find(n => n.id === nodeId);
+      if (!node) return;
+      
+      const config = nodeTypeConfigs[node.type] || {};
+      if (config.canDelete === false) {
+        showToast('לא ניתן למחוק רכיב טריגר');
+        return;
+      }
+      
+      setNodesFunc(nodes => nodes.filter(n => n.id !== nodeId));
+      setEdgesFunc(edges => edges.filter(e => e.source !== nodeId && e.target !== nodeId));
+      
+      if (selectedNodeId === nodeId) {
+        closeEditor();
+      }
+      
+      markUnsaved();
+      showToast('הרכיב נמחק');
+    }
+
+    // Hide context menu on click outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.context-menu')) {
+        hideContextMenu();
+      }
+    });
 
     // Editor Panel
     function openEditor(node) {
-      const panel = document.getElementById('editor-panel');
-      const paletteSidebar = document.getElementById('palette-sidebar');
-      const title = document.getElementById('editor-title');
-      const icon = document.getElementById('editor-icon');
-      const content = document.getElementById('editor-content');
+      selectedNodeId = node.id;
       
       const config = nodeTypeConfigs[node.type] || {};
-      title.textContent = config.title || 'עריכת רכיב';
-      icon.innerHTML = `<i class="fa-solid ${config.icon}"></i>`;
-      icon.style.background = config.color;
       
-      content.innerHTML = getEditorHTML(node.type, node.data);
+      document.getElementById('editor-title').textContent = config.title || 'עריכת רכיב';
+      document.getElementById('editor-icon').innerHTML = `<i class="fa-solid ${config.icon}"></i>`;
+      document.getElementById('editor-icon').style.background = config.color;
       
-      paletteSidebar.style.display = 'none';
-      panel.classList.add('show');
+      document.getElementById('editor-content').innerHTML = getEditorHTML(node.type, node.data);
+      
+      const deleteBtn = document.getElementById('delete-btn');
+      deleteBtn.disabled = config.canDelete === false;
+      
+      document.getElementById('palette-view').style.display = 'none';
+      document.getElementById('editor-view').style.display = 'flex';
     }
 
     function closeEditor() {
-      document.getElementById('editor-panel').classList.remove('show');
-      document.getElementById('palette-sidebar').style.display = 'flex';
+      document.getElementById('editor-view').style.display = 'none';
+      document.getElementById('palette-view').style.display = 'block';
       selectedNodeId = null;
     }
 
@@ -1122,7 +1122,6 @@
             <div class="form-group">
               <label>ערך</label>
               <input type="text" id="ed-value" value="${data.value || ''}">
-              <small>ניתן להשתמש בטקסט או במשתנים</small>
             </div>
           `;
         case 'database':
@@ -1138,7 +1137,6 @@
             <div class="form-group">
               <label>שאילתת SQL (לפעולה מותאמת)</label>
               <textarea id="ed-sql" rows="4" placeholder="SELECT * FROM...">${data.sql || ''}</textarea>
-              <small>רק עבור פעולת SQL מותאמת</small>
             </div>
           `;
         default:
@@ -1192,20 +1190,184 @@
       
       markUnsaved();
       closeEditor();
+      showToast('השינויים הוחלו');
     }
 
     function deleteSelectedNode() {
-      if (!selectedNodeId || !setNodesFunc || !setEdgesFunc) return;
-      
-      if (!confirm('האם למחוק את הרכיב?')) return;
-      
-      setNodesFunc(nodes => nodes.filter(n => n.id !== selectedNodeId));
-      setEdgesFunc(edges => edges.filter(e => 
-        e.source !== selectedNodeId && e.target !== selectedNodeId
-      ));
-      
-      markUnsaved();
-      closeEditor();
+      if (!selectedNodeId) return;
+      deleteNode(selectedNodeId);
+    }
+
+    // ReactFlow Component
+    function FlowCanvas() {
+      const [nodes, setNodes] = useState(nodesState);
+      const [edges, setEdges] = useState(edgesState);
+      const reactFlowWrapper = useRef(null);
+
+      useEffect(() => {
+        setNodesFunc = setNodes;
+        setEdgesFunc = setEdges;
+      }, []);
+
+      useEffect(() => { nodesState = nodes; }, [nodes]);
+      useEffect(() => { edgesState = edges; }, [edges]);
+
+      const onNodesChange = useCallback((changes) => {
+        setNodes((nds) => applyRFNodeChanges(changes, nds));
+        const nonSelectChanges = changes.filter(c => c.type !== 'select');
+        if (nonSelectChanges.length > 0) markUnsaved();
+      }, []);
+
+      const onEdgesChange = useCallback((changes) => {
+        setEdges((eds) => applyEdgeChanges(changes, eds));
+        markUnsaved();
+      }, []);
+
+      const onConnect = useCallback((connection) => {
+        const edge = {
+          ...connection,
+          id: `edge_${Date.now()}`,
+          type: 'smoothstep',
+          animated: true,
+          markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15 }
+        };
+        setEdges((eds) => addEdge(edge, eds));
+        markUnsaved();
+      }, []);
+
+      const onNodeClick = useCallback((event, node) => {
+        openEditor(node);
+      }, []);
+
+      const onNodeContextMenu = useCallback((event, node) => {
+        event.preventDefault();
+        showContextMenu(event, node);
+      }, []);
+
+      const onInit = useCallback((instance) => {
+        reactFlowInstance = instance;
+      }, []);
+
+      const onDrop = useCallback((event) => {
+        event.preventDefault();
+        const type = event.dataTransfer.getData('nodeType');
+        if (!type || !reactFlowInstance || type === 'trigger') return;
+
+        const position = reactFlowInstance.screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY
+        });
+
+        const config = nodeTypeConfigs[type];
+        const newNode = {
+          id: createNodeId(),
+          type,
+          position,
+          data: { label: config.title, ...getDefaultNodeData(type) }
+        };
+
+        setNodes((nds) => [...nds, newNode]);
+        markUnsaved();
+        
+        setTimeout(() => openEditor(newNode), 100);
+      }, []);
+
+      const onDragOver = useCallback((event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+      }, []);
+
+      const onPaneClick = useCallback(() => {
+        hideContextMenu();
+      }, []);
+
+      const CustomNode = ({ data, type }) => {
+        const config = nodeTypeConfigs[type] || {};
+        const content = getNodeContent(type, data);
+        
+        return React.createElement('div', { className: 'custom-node' },
+          React.createElement('div', { className: 'node-header' },
+            React.createElement('div', { 
+              className: 'node-icon', 
+              style: { background: config.color } 
+            }, React.createElement('i', { className: `fa-solid ${config.icon}` })),
+            React.createElement('span', { className: 'node-title' }, data.label || config.title)
+          ),
+          content && React.createElement('div', { className: 'node-content' }, content)
+        );
+      };
+
+      const nodeTypes = {
+        trigger: (props) => React.createElement(CustomNode, { ...props, type: 'trigger' }),
+        message: (props) => React.createElement(CustomNode, { ...props, type: 'message' }),
+        condition: (props) => React.createElement(CustomNode, { ...props, type: 'condition' }),
+        delay: (props) => React.createElement(CustomNode, { ...props, type: 'delay' }),
+        action: (props) => React.createElement(CustomNode, { ...props, type: 'action' }),
+        database: (props) => React.createElement(CustomNode, { ...props, type: 'database' })
+      };
+
+      return React.createElement('div', { 
+        ref: reactFlowWrapper, 
+        style: { width: '100%', height: '100%' },
+        onDrop,
+        onDragOver
+      },
+        React.createElement(ReactFlow, {
+          nodes,
+          edges,
+          onNodesChange,
+          onEdgesChange,
+          onConnect,
+          onNodeClick,
+          onNodeContextMenu,
+          onInit,
+          onPaneClick,
+          nodeTypes,
+          fitView: true,
+          snapToGrid: true,
+          snapGrid: [20, 20],
+          defaultEdgeOptions: {
+            type: 'smoothstep',
+            animated: true,
+            style: { strokeWidth: 2, stroke: '#94a3b8' },
+            markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12, color: '#94a3b8' }
+          },
+          connectionLineStyle: { strokeWidth: 2, stroke: '#6366f1' },
+          minZoom: 0.3,
+          maxZoom: 2
+        },
+          React.createElement(Controls, { position: 'bottom-left', showInteractive: false }),
+          React.createElement(Background, { color: '#cbd5e1', gap: 20, size: 1.5 })
+        )
+      );
+    }
+
+    function getNodeContent(type, data) {
+      switch(type) {
+        case 'trigger':
+          return data.keyword ? `מילת מפתח: ${data.keyword}` : 'כל הודעה';
+        case 'message':
+          return data.text ? (data.text.length > 35 ? data.text.substring(0, 35) + '...' : data.text) : 'הודעה ריקה';
+        case 'condition':
+          return data.conditions?.[0]?.variable || 'ללא תנאי מוגדר';
+        case 'delay':
+          const units = { seconds: 'שניות', minutes: 'דקות', hours: 'שעות' };
+          return `${data.duration} ${units[data.unit] || data.unit}`;
+        case 'action':
+          const actions = { setVariable: 'הגדר משתנה', addTag: 'הוסף תג', removeTag: 'הסר תג' };
+          return actions[data.actionType] || data.actionType;
+        case 'database':
+          const ops = { addParticipant: 'הוסף משתתף', addCard: 'הוסף כרטיס', query: 'שאילתת SQL' };
+          return ops[data.operation] || data.operation;
+        default:
+          return '';
+      }
+    }
+
+    function renderReactFlow() {
+      const container = document.getElementById('flow-canvas');
+      const root = ReactDOM.createRoot(container);
+      root.render(React.createElement(FlowCanvas));
     }
 
     // Keyboard shortcuts
@@ -1216,6 +1378,10 @@
       }
       if (e.key === 'Escape') {
         closeEditor();
+        hideContextMenu();
+      }
+      if (e.key === 'Delete' && selectedNodeId) {
+        deleteSelectedNode();
       }
     });
 

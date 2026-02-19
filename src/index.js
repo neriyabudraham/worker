@@ -30,8 +30,13 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static files
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Serve builder app
-app.use('/builder', express.static(path.join(__dirname, '../public/builder')));
+// Builder clean URLs
+app.get('/builder', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/builder/index.html'));
+});
+app.get('/builder/editor/:id', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/builder/editor.html'));
+});
 
 // Health check
 app.get('/health', (req, res) => {

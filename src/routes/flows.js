@@ -87,7 +87,17 @@ router.post('/', async (req, res, next) => {
             [name, description || null, flowType, bot_id || null, config || {}]
         );
 
-        res.status(201).json({ ...result.rows[0], flow_type: result.rows[0].type });
+        const newFlow = result.rows[0];
+
+        // Create default trigger node
+        const triggerId = `trigger_${Date.now()}`;
+        await query(
+            `INSERT INTO flow_nodes (flow_id, node_id, type, subtype, label, position_x, position_y, config)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [newFlow.id, triggerId, 'trigger', 'trigger', 'טריגר התחלה', 250, 100, { triggerType: 'message', keyword: '' }]
+        );
+
+        res.status(201).json({ ...newFlow, flow_type: newFlow.type });
     } catch (error) {
         next(error);
     }
