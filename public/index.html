@@ -27,8 +27,6 @@
       --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     }
 
-    * { box-sizing: border-box; }
-
     body {
       font-family: 'Heebo', sans-serif;
       background: var(--bg);
@@ -38,144 +36,52 @@
     }
 
     .container {
-      max-width: 1400px;
+      max-width: 1500px;
       margin: 0 auto;
-    }
-
-    /* Header Card */
-    .header-card {
       background: var(--card-bg);
-      padding: 25px 30px;
+      padding: 30px;
       border-radius: var(--radius);
       box-shadow: var(--shadow);
-      margin-bottom: 20px;
+    }
+
+    .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-    }
-
-    .header-card h1 {
-      margin: 0;
-      font-size: 1.7rem;
-      font-weight: 700;
-      color: #1e293b;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .header-card h1 i { color: var(--primary); }
-
-    .header-actions { display: flex; gap: 10px; }
-
-    /* Stats Row */
-    .stats-row {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 15px;
-      margin-bottom: 20px;
-    }
-
-    .stat-card {
-      background: var(--card-bg);
-      padding: 20px;
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      text-align: center;
-    }
-
-    .stat-card .icon {
-      width: 50px;
-      height: 50px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 12px;
-      font-size: 20px;
-    }
-
-    .stat-card:nth-child(1) .icon { background: #e0e7ff; color: #4361ee; }
-    .stat-card:nth-child(2) .icon { background: #d1fae5; color: #059669; }
-    .stat-card:nth-child(3) .icon { background: #fef3c7; color: #d97706; }
-    .stat-card:nth-child(4) .icon { background: #fee2e2; color: #dc2626; }
-
-    .stat-card .number {
-      font-size: 2.2rem;
-      font-weight: 700;
-      color: #1e293b;
-      line-height: 1;
-    }
-
-    .stat-card .label {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-      margin-top: 5px;
-    }
-
-    /* Section Card */
-    .section-card {
-      background: var(--card-bg);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      margin-bottom: 20px;
-      overflow: hidden;
-    }
-
-    .section-header {
-      padding: 18px 25px;
-      background: linear-gradient(to left, #f8fafc, #fff);
+      margin-bottom: 25px;
+      padding-bottom: 20px;
       border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
     }
 
-    .section-header h2 {
-      margin: 0;
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: #374151;
+    .header h1 { margin: 0; font-size: 1.8rem; font-weight: 700; color: #1e293b; }
+    .header h1 i { color: var(--primary); }
+
+    .controls {
       display: flex;
       align-items: center;
-      gap: 10px;
+      margin-bottom: 20px;
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
     }
 
-    .section-header .badge {
-      background: var(--primary);
-      color: #fff;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 500;
-    }
-
-    .section-header.active .badge { background: var(--success); }
-    .section-header.inactive .badge { background: #9ca3af; }
-
-    /* Table */
-    .table-responsive { overflow-x: auto; }
-    
-    table { 
-      width: 100%; 
-      border-collapse: collapse; 
-      min-width: 900px;
-    }
+    .table-responsive { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; min-width: 1100px; }
 
     th {
       text-align: right;
-      padding: 14px 18px;
+      padding: 18px;
       background: #f8fafc;
       color: #64748b;
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
       border-bottom: 2px solid var(--border);
     }
 
     td {
-      padding: 14px 18px;
+      padding: 16px;
       border-bottom: 1px solid var(--border);
       vertical-align: middle;
       background: white;
@@ -183,10 +89,8 @@
     }
 
     tr:hover td { background-color: #f8fafc; }
-    tr:last-child td { border-bottom: none; }
     tr.sortable-ghost { background: #e0f2fe; opacity: 0.8; }
 
-    /* Phone Link */
     .phone-link {
       display: inline-flex;
       align-items: center;
@@ -195,560 +99,264 @@
       color: var(--text-main);
       font-family: 'Courier New', monospace;
       font-weight: 700;
-      font-size: 1rem;
-      padding: 6px 12px;
-      border-radius: 8px;
+      font-size: 1.05rem;
+      padding: 5px 10px;
+      border-radius: 6px;
       transition: all 0.2s;
       background: #f1f5f9;
     }
 
-    .phone-link i { color: #25D366; font-size: 1.15rem; }
+    .phone-link i { color: #25D366; font-size: 1.2rem; }
     .phone-link:hover { background: #dcfce7; color: #14532d; transform: translateX(-3px); }
 
-    /* Time Tags */
     .time-tag {
-      padding: 5px 10px;
-      border-radius: 6px;
-      font-weight: 500;
-      font-size: 0.8rem;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
+      padding: 6px 12px; border-radius: 6px; font-weight: 500; font-size: 0.85rem;
+      display: inline-flex; align-items: center; gap: 6px; width: fit-content;
     }
 
-    .time-tag.future { background: #e0f2fe; color: #0369a1; }
-    .time-tag.ending-soon { background: #fef9c3; color: #854d0e; }
+    .time-tag.future { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+    .time-tag.ending-soon { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
     .time-tag.ended { background: #f3f4f6; color: #6b7280; text-decoration: line-through; opacity: 0.7; }
-    .time-tag.active { background: #dcfce7; color: #15803d; }
+    .time-tag.today { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
 
-    /* Buttons */
-    .btn {
-      border: none;
-      padding: 10px 20px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      font-family: inherit;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.2s;
-      font-size: 0.9rem;
-    }
-
-    .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-    .btn-primary { background: var(--primary); color: white; }
-    .btn-primary:hover { background: var(--primary-hover); }
-    .btn-danger { background: var(--danger); color: white; }
-    .btn-secondary { background: #f1f5f9; color: #475569; }
-    .btn-secondary:hover { background: #e2e8f0; }
-
-    .btn-icon {
-      background: transparent;
-      border: none;
-      cursor: pointer;
-      font-size: 1rem;
-      color: var(--text-muted);
-      padding: 8px;
-      border-radius: 8px;
-      transition: 0.2s;
-    }
-
-    .btn-icon:hover { background: #f1f5f9; color: var(--primary); }
-    .btn-icon.delete:hover { color: var(--danger); background: #fee2e2; }
-    .btn-icon.active { color: var(--success); }
-
-    .drag-handle { cursor: grab; color: #cbd5e1; font-size: 1.1rem; }
-    .drag-handle:active { cursor: grabbing; color: var(--primary); }
-
-    /* Form Elements */
-    select, input {
-      padding: 9px 14px;
-      border: 1px solid #d1d5db;
-      border-radius: 8px;
-      font-family: inherit;
-      font-size: 0.9rem;
-      transition: all 0.2s;
-    }
-
-    select:focus, input:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
-    }
-
-    /* Add Bot Section */
-    .add-bot-section {
-      background: #f0f9ff;
-      padding: 20px 25px;
-      border-radius: 12px;
-      border: 1px dashed #bae6fd;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 15px;
-      align-items: center;
-    }
-
-    .add-bot-section span {
-      font-weight: 600;
-      color: #0369a1;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    /* Modals */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.4);
-      backdrop-filter: blur(4px);
-      z-index: 1000;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-    }
-
-    .modal-overlay.open { display: flex; }
-
-    .modal-box {
-      background: white;
-      width: 100%;
-      max-width: 550px;
-      padding: 0;
-      border-radius: 16px;
-      box-shadow: 0 25px 50px rgba(0,0,0,0.25);
-      animation: slideUp 0.3s ease;
-      max-height: 90vh;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    @keyframes slideUp {
-      from { transform: translateY(20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-
-    .modal-header {
-      padding: 20px 25px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .modal-header h3 {
-      margin: 0;
-      font-size: 1.25rem;
-      color: #1e293b;
-    }
-
-    .modal-body {
-      padding: 25px;
-      overflow-y: auto;
-    }
-
-    .modal-footer {
-      padding: 15px 25px;
-      border-top: 1px solid var(--border);
-      background: #f8fafc;
-    }
-
-    .form-group { margin-bottom: 20px; }
-
-    .form-group label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: 500;
-      color: #374151;
-      font-size: 0.9rem;
-    }
-
-    .form-group input,
-    .form-group select,
-    .form-group textarea { width: 100%; }
-
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
-    }
-
-    /* Date Input Group */
     .date-input-group {
       display: flex;
       align-items: center;
       background: white;
-      border: 1px solid #d1d5db;
-      border-radius: 8px;
+      border: 1px solid #ced4da;
+      border-radius: 6px;
       overflow: hidden;
+      position: relative;
     }
 
     .date-input-group input {
-      border: none;
-      flex: 1;
-      outline: none;
+      border: none; flex: 1; outline: none; padding: 10px; font-family: inherit; background: transparent;
     }
 
     .clear-date-btn {
-      background: none;
-      border: none;
-      color: #9ca3af;
-      cursor: pointer;
-      padding: 0 12px;
-      font-size: 1rem;
+      background: none; border: none; color: #adb5bd; cursor: pointer; padding: 0 10px; font-size: 1.1rem; z-index: 2;
     }
 
     .clear-date-btn:hover { color: var(--danger); }
 
-    /* SQL Editor */
-    .sql-editor-container {
-      position: relative;
-      border-radius: 8px;
-      overflow: hidden;
-      border: 1px solid #374151;
-    }
-
+    .sql-editor-container { position: relative; border-radius: 8px; overflow: hidden; border: 1px solid #333; }
+    
     .sql-editor {
-      width: 100%;
-      background: #1e1e1e;
-      color: #d4d4d4;
-      font-family: 'Consolas', 'Monaco', monospace;
-      font-size: 0.85rem;
-      padding: 15px;
-      border: none;
-      outline: none;
-      resize: vertical;
-      line-height: 1.6;
-      direction: ltr;
-      min-height: 120px;
+      width: 100%; background: #1e1e1e; color: #d4d4d4;
+      font-family: 'Consolas', 'Monaco', monospace; font-size: 0.9rem;
+      padding: 15px; border: none; outline: none; resize: vertical; line-height: 1.5; direction: ltr;
     }
 
-    .sql-badge {
-      position: absolute;
-      top: 0;
-      right: 0;
-      background: #374151;
-      color: #fff;
-      font-size: 0.7rem;
-      padding: 3px 10px;
-      border-bottom-left-radius: 6px;
-    }
+    .sql-badge { position: absolute; top: 0; right: 0; background: #333; color: #fff; font-size: 0.7rem; padding: 2px 8px; border-bottom-left-radius: 6px; font-family: sans-serif; }
 
-    /* List Items */
-    .list-container {
-      max-height: 350px;
-      overflow-y: auto;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-    }
+    select, input { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-family: inherit; }
+    
+    .btn { border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; font-family: inherit; }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-icon { background: transparent; border: none; cursor: pointer; font-size: 1.1rem; color: var(--text-muted); padding: 8px; border-radius: 50%; transition: 0.2s; }
+    .btn-icon:hover { background: #f1f5f9; color: var(--primary); }
+    .btn-icon.delete:hover { color: var(--danger); background: #fee2e2; }
+    .drag-handle { cursor: grab; color: #cbd5e1; font-size: 1.2rem; }
+    .drag-handle:active { cursor: grabbing; color: var(--primary); }
 
-    .list-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 15px;
-      border-bottom: 1px solid var(--border);
-      background: white;
-    }
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 1000; justify-content: center; align-items: center; }
+    .modal-overlay.open { display: flex; }
+    .modal-box { background: white; width: 90%; max-width: 600px; padding: 30px; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); animation: slideUp 0.3s ease; max-height: 90vh; overflow-y: auto; }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-    .list-item:last-child { border-bottom: none; }
-    .list-item:hover { background: #f8fafc; }
-
-    .list-item .phone {
-      font-family: 'Courier New', monospace;
-      font-weight: 600;
-      color: var(--text-main);
-    }
-
-    .list-empty {
-      text-align: center;
-      padding: 40px;
-      color: #9ca3af;
-    }
-
-    /* Loader */
-    .loader-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(255,255,255,0.8);
-      z-index: 2000;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .spinner {
-      border: 4px solid #e5e7eb;
-      border-top: 4px solid var(--primary);
-      border-radius: 50%;
-      width: 45px;
-      height: 45px;
-      animation: spin 0.8s linear infinite;
-    }
-
+    .loader-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 2000; justify-content: center; align-items: center; }
+    .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
     @keyframes spin { 100% { transform: rotate(360deg); } }
 
-    /* Toast */
-    .toast {
-      position: fixed;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%) translateY(100px);
-      background: #1e293b;
-      color: white;
-      padding: 14px 30px;
-      border-radius: 30px;
-      opacity: 0;
-      transition: all 0.3s;
-      pointer-events: none;
-      z-index: 3000;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-      font-weight: 500;
-    }
-
-    .toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-
-    /* Empty State */
-    .empty-state {
-      text-align: center;
-      padding: 50px 20px;
-      color: #9ca3af;
-    }
-
-    .empty-state i {
-      font-size: 3rem;
-      margin-bottom: 15px;
-      opacity: 0.5;
-    }
-
     .hidden { display: none !important; }
+    .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 25px; border-radius: 30px; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 3000; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+    .toast.show { opacity: 1; bottom: 40px; }
 
-    /* Responsive */
-    @media (max-width: 768px) {
+    /* Searchable Select */
+    .search-select-container { position: relative; }
+    .search-select-input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ced4da;
+      border-radius: 6px;
+      font-family: inherit;
+      cursor: pointer;
+      background: white;
+    }
+    .search-select-dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      left: 0;
+      background: white;
+      border: 1px solid #ced4da;
+      border-radius: 6px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      z-index: 100;
+      max-height: 250px;
+      overflow-y: auto;
+      display: none;
+    }
+    .search-select-dropdown.open { display: block; }
+    .search-select-search {
+      width: 100%;
+      padding: 10px 12px;
+      border: none;
+      border-bottom: 1px solid #eee;
+      outline: none;
+      font-family: inherit;
+    }
+    .search-select-option {
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    .search-select-option:hover { background: #f1f5f9; }
+    .search-select-option.selected { background: #e0e7ff; color: var(--primary); font-weight: 600; }
+    .search-select-empty { padding: 15px; text-align: center; color: #999; }
+
+    /* List Items */
+    .list-container { max-height: 350px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+    .list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border-bottom: 1px solid var(--border); background: white; }
+    .list-item:last-child { border-bottom: none; }
+    .list-item:hover { background: #f8fafc; }
+    .list-item .phone { font-family: 'Courier New', monospace; font-weight: 600; }
+    .list-empty { text-align: center; padding: 30px; color: #999; }
+
+    @media screen and (max-width: 900px) {
       body { padding: 10px; }
-      .stats-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-      .header-card { flex-direction: column; gap: 15px; text-align: center; }
-      .header-actions { width: 100%; justify-content: center; }
-      .form-row { grid-template-columns: 1fr; }
-      .add-bot-section { justify-content: center; }
-      .add-bot-section input { width: 100%; }
+      .container { padding: 15px; }
+      thead { display: none; }
+      table, tbody, th, td, tr { display: block; width: 100%; min-width: 0 !important; }
+      tr { margin-bottom: 20px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); padding: 15px; position: relative; }
+      td { text-align: left; padding: 10px 5px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+      td:last-child { border-bottom: none; }
+      td::before { content: attr(data-label); font-weight: 700; color: #64748b; font-size: 0.85rem; margin-left: 15px; text-transform: uppercase; }
+      select, input { max-width: 60%; }
+      td.drag-handle { position: absolute; top: 10px; left: 10px; border: none; padding: 0; width: auto; justify-content: flex-end; }
+      td.drag-handle::before { content: ""; }
+      td[data-label="ID"] { color: #ccc; font-size: 0.8rem; border: none; padding-top: 0; }
+      #newBotPhone { width: 100% !important; margin-bottom: 10px; }
+      .header { flex-direction: column; align-items: flex-start; gap: 10px; }
+      .header button { width: 100%; }
     }
   </style>
 </head>
 <body>
 
-<div class="loader-overlay" id="loader">
-  <div class="spinner"></div>
-</div>
+<div class="loader-overlay" id="globalLoader"><div class="spinner"></div></div>
 
 <div class="container">
-  <!-- Header -->
-  <div class="header-card">
-    <h1><i class="fa-solid fa-robot"></i> מערכת ניהול בוטים</h1>
-    <div class="header-actions">
-      <button class="btn btn-danger" onclick="openBlacklist()">
-        <i class="fa-solid fa-ban"></i> ניהול חסומים
-      </button>
-      <button class="btn btn-secondary" onclick="loadData()">
-        <i class="fa-solid fa-refresh"></i>
-      </button>
+  <div class="header">
+    <h1><i class="fa-solid fa-robot"></i> ניהול בוטים</h1>
+    <button class="btn btn-danger" onclick="openBlacklist()"><i class="fa-solid fa-ban"></i> ניהול חסומים</button>
+  </div>
+
+  <div class="controls">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <label><i class="fa-solid fa-filter"></i> סינון:</label>
+      <select id="statusFilter" onchange="renderTable()">
+        <option value="all">הכל</option>
+        <option value="active">פעילים</option>
+        <option value="off">לא פעילים</option>
+      </select>
     </div>
   </div>
 
-  <!-- Stats -->
-  <div class="stats-row">
-    <div class="stat-card">
-      <div class="icon"><i class="fa-solid fa-robot"></i></div>
-      <div class="number" id="stat-total">0</div>
-      <div class="label">סה״כ בוטים</div>
-    </div>
-    <div class="stat-card">
-      <div class="icon"><i class="fa-solid fa-circle-check"></i></div>
-      <div class="number" id="stat-active">0</div>
-      <div class="label">פעילים</div>
-    </div>
-    <div class="stat-card">
-      <div class="icon"><i class="fa-solid fa-message"></i></div>
-      <div class="number" id="stat-messages">0</div>
-      <div class="label">הודעות היום</div>
-    </div>
-    <div class="stat-card">
-      <div class="icon"><i class="fa-solid fa-ban"></i></div>
-      <div class="number" id="stat-blocked">0</div>
-      <div class="label">חסומים</div>
-    </div>
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:30px"></th>
+          <th style="width:50px">ID</th>
+          <th>מספר (לחץ לווצאפ)</th>
+          <th>קמפיין</th>
+          <th style="width:120px">סטטוס</th>
+          <th>תזמון פעילות</th>
+          <th>גישה</th>
+          <th style="width:100px">פעולות</th>
+          <th style="text-align:center; width:60px">מחיקה</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
   </div>
 
-  <!-- Active Bots Section -->
-  <div class="section-card">
-    <div class="section-header active">
-      <h2><i class="fa-solid fa-circle-check"></i> בוטים פעילים <span class="badge" id="active-count">0</span></h2>
-    </div>
-    <div class="table-responsive">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:40px"></th>
-            <th style="width:60px">ID</th>
-            <th>מספר</th>
-            <th>Workflow</th>
-            <th style="width:120px">סטטוס</th>
-            <th>תזמון</th>
-            <th>גישה</th>
-            <th style="width:120px">פעולות</th>
-          </tr>
-        </thead>
-        <tbody id="activeTableBody"></tbody>
-      </table>
-    </div>
-    <div id="activeEmpty" class="empty-state hidden">
-      <i class="fa-solid fa-circle-pause"></i>
-      <p>אין בוטים פעילים</p>
-    </div>
-  </div>
-
-  <!-- Inactive Bots Section -->
-  <div class="section-card">
-    <div class="section-header inactive">
-      <h2><i class="fa-solid fa-circle-pause"></i> בוטים כבויים <span class="badge" id="inactive-count">0</span></h2>
-    </div>
-    <div class="table-responsive">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:40px"></th>
-            <th style="width:60px">ID</th>
-            <th>מספר</th>
-            <th>Workflow</th>
-            <th style="width:120px">סטטוס</th>
-            <th>תזמון</th>
-            <th>גישה</th>
-            <th style="width:120px">פעולות</th>
-          </tr>
-        </thead>
-        <tbody id="inactiveTableBody"></tbody>
-      </table>
-    </div>
-    <div id="inactiveEmpty" class="empty-state hidden">
-      <i class="fa-solid fa-check-circle"></i>
-      <p>כל הבוטים פעילים!</p>
-    </div>
-  </div>
-
-  <!-- Add Bot -->
-  <div class="add-bot-section">
-    <span><i class="fa-solid fa-plus-circle"></i> הוספת בוט חדש:</span>
-    <input type="tel" id="newBotPhone" placeholder="מספר טלפון (972...)" style="width: 250px;">
-    <button class="btn btn-primary" onclick="addBot()">
-      <i class="fa-solid fa-plus"></i> הוסף
-    </button>
+  <div style="margin-top:25px; background:#f0f9ff; padding:20px; border-radius:12px; border:1px dashed #bae6fd; display:flex; flex-wrap:wrap; gap:15px; align-items:center;">
+    <span style="font-weight:bold; color:#0369a1;"><i class="fa-solid fa-plus"></i> הוספת בוט חדש:</span>
+    <input type="tel" id="newBotPhone" placeholder="מספר טלפון (972...)" style="width:250px; background:white;">
+    <button class="btn btn-primary" onclick="addBot()">הוסף</button>
   </div>
 </div>
 
 <!-- Settings Modal -->
-<div class="modal-overlay" id="settingsModal">
+<div id="settingsModal" class="modal-overlay">
   <div class="modal-box">
-    <div class="modal-header">
-      <h3><i class="fa-solid fa-gear"></i> הגדרות בוט</h3>
-      <button class="btn-icon" onclick="closeModal('settingsModal')">
-        <i class="fa-solid fa-xmark fa-lg"></i>
-      </button>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; border-bottom:1px solid #eee; padding-bottom:15px;">
+      <h3 style="margin:0; font-size:1.5rem;">⚙️ הגדרות בוט</h3>
+      <button class="btn-icon" onclick="closeSettings()"><i class="fa-solid fa-xmark fa-lg"></i></button>
     </div>
-    <div class="modal-body">
-      <input type="hidden" id="editBotId">
 
-      <div class="form-group">
-        <label><i class="fa-solid fa-diagram-project"></i> Workflow</label>
-        <select id="editWorkflow"></select>
-      </div>
+    <input type="hidden" id="editBotId">
 
-      <div class="form-group">
-        <label><i class="fa-solid fa-lock-open"></i> מצב גישה</label>
-        <select id="editAccess" onchange="toggleDynamic()">
-          <option value="everyone">🔓 כולם</option>
-          <option value="whitelist">📝 רשימה לבנה</option>
-          <option value="dynamic">⚡ שאילתה דינאמית</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label><i class="fa-regular fa-calendar-days"></i> תזמון פעילות</label>
-        <div class="form-row">
-          <div>
-            <small style="color: var(--text-muted);">פעיל מ-:</small>
-            <div class="date-input-group">
-              <input type="text" id="editFrom" placeholder="בחר תאריך...">
-              <button class="clear-date-btn" onclick="fpFrom.clear()"><i class="fa-solid fa-circle-xmark"></i></button>
-            </div>
+    <div style="margin-bottom:25px;">
+      <h4 style="margin:0 0 10px 0; color:var(--text-muted); font-size:0.9rem;"><i class="fa-regular fa-calendar-days"></i> תזמון פעילות</h4>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+        <div>
+          <label style="font-size:0.85rem; margin-bottom:5px; display:block;">פעיל מ-:</label>
+          <div class="date-input-group">
+            <input type="text" id="setFrom" placeholder="בחר תאריך ושעה..." data-input>
+            <button class="clear-date-btn" title="נקה תאריך" onclick="fpFrom.clear()"><i class="fa-solid fa-circle-xmark"></i></button>
           </div>
-          <div>
-            <small style="color: var(--text-muted);">פעיל עד-:</small>
-            <div class="date-input-group">
-              <input type="text" id="editUntil" placeholder="בחר תאריך...">
-              <button class="clear-date-btn" onclick="fpUntil.clear()"><i class="fa-solid fa-circle-xmark"></i></button>
-            </div>
+        </div>
+        <div>
+          <label style="font-size:0.85rem; margin-bottom:5px; display:block;">פעיל עד-:</label>
+          <div class="date-input-group">
+            <input type="text" id="setUntil" placeholder="בחר תאריך ושעה..." data-input>
+            <button class="clear-date-btn" title="נקה תאריך" onclick="fpUntil.clear()"><i class="fa-solid fa-circle-xmark"></i></button>
           </div>
         </div>
       </div>
-
-      <div class="form-group">
-        <label><i class="fa-solid fa-stopwatch"></i> השהיה (שניות)</label>
-        <input type="number" id="editDelay" value="0" min="0" style="width: 120px;">
-      </div>
-
-      <div class="form-group hidden" id="dynamicGroup">
-        <label><i class="fa-solid fa-database"></i> שאילתה דינאמית (SQL)</label>
-        <div class="sql-editor-container">
-          <span class="sql-badge">SQL</span>
-          <textarea id="editQuery" class="sql-editor" placeholder="SELECT * FROM users WHERE phone = '{{phone}}'"></textarea>
-        </div>
-        <small style="color: var(--text-muted); margin-top: 8px; display: block;">
-          💡 השתמש ב-<code style="background:#f1f5f9; padding: 2px 6px; border-radius: 4px;">{{phone}}</code> למספר הלקוח
-        </small>
-      </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-primary" style="width: 100%;" onclick="saveSettings()">
-        <i class="fa-solid fa-check"></i> שמור הגדרות
-      </button>
+
+    <div style="margin-bottom:25px;">
+      <h4 style="margin:0 0 10px 0; color:var(--text-muted); font-size:0.9rem;"><i class="fa-solid fa-stopwatch"></i> השהיה (שניות)</h4>
+      <input type="number" id="setDelay" placeholder="0" min="0" style="width:100px;">
+    </div>
+
+    <div id="dynamicQuerySection" class="hidden">
+      <h4 style="margin:0 0 10px 0; color:var(--text-muted); font-size:0.9rem;"><i class="fa-solid fa-database"></i> שאילתא דינאמית (SQL)</h4>
+      <div class="sql-editor-container">
+        <span class="sql-badge">SQL Editor</span>
+        <textarea id="setQuery" class="sql-editor" rows="6" placeholder="SELECT * FROM users WHERE phone = {{phone}}"></textarea>
+      </div>
+      <p style="font-size:0.8rem; color:#666; margin-top:5px;">💡 השתמש ב-<code>{{phone}}</code> למספר הלקוח.</p>
+    </div>
+
+    <div style="text-align:left; margin-top:30px;">
+      <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="saveSettings()">💾 שמור הגדרות</button>
     </div>
   </div>
 </div>
 
-<!-- List Modal -->
-<div class="modal-overlay" id="listModal">
-  <div class="modal-box">
-    <div class="modal-header">
-      <h3 id="listModalTitle"><i class="fa-solid fa-list"></i> ניהול רשימה</h3>
-      <button class="btn-icon" onclick="closeModal('listModal')">
-        <i class="fa-solid fa-xmark fa-lg"></i>
-      </button>
+<!-- List Modal (Blacklist / Whitelist) -->
+<div id="listModal" class="modal-overlay">
+  <div class="modal-box" style="max-width:450px;">
+    <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+      <h3 id="listTitle" style="margin:0"></h3>
+      <button class="btn-icon" onclick="closeModal('listModal')">×</button>
     </div>
-    <div class="modal-body">
-      <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-        <input type="tel" id="listPhoneInput" placeholder="מספר טלפון..." style="flex: 1;">
-        <button class="btn btn-primary" onclick="addToList()">
-          <i class="fa-solid fa-plus"></i>
-        </button>
-      </div>
-      <div class="list-container" id="listContainer"></div>
+    <div style="display:flex; gap:10px; margin-bottom:15px; background:#f8f9fa; padding:10px; border-radius:8px;">
+      <input type="text" id="listInput" placeholder="מספר טלפון..." style="flex:1">
+      <button class="btn btn-primary" onclick="addListItem()"><i class="fa-solid fa-plus"></i></button>
     </div>
+    <div class="list-container" id="listContainer"></div>
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div id="toast" class="toast"></div>
 
 <script>
   const API = '';
@@ -761,39 +369,51 @@
   let fpFrom, fpUntil;
 
   document.addEventListener('DOMContentLoaded', () => {
-    const config = {
+    const configFrom = {
       enableTime: true,
       dateFormat: "Y-m-d H:i",
       time_24hr: true,
       locale: "he",
-      disableMobile: true
+      disableMobile: true,
+      defaultHour: 0,
+      defaultMinute: 0
     };
-    fpFrom = flatpickr("#editFrom", config);
-    fpUntil = flatpickr("#editUntil", config);
+    const configUntil = {
+      enableTime: true,
+      dateFormat: "Y-m-d H:i",
+      time_24hr: true,
+      locale: "he",
+      disableMobile: true,
+      defaultHour: 20,
+      defaultMinute: 0
+    };
+    fpFrom = flatpickr("#setFrom", configFrom);
+    fpUntil = flatpickr("#setUntil", configUntil);
     loadData();
   });
 
   async function loadData() {
     showLoader(true);
     try {
-      const [botsRes, workflowsRes, blockedRes, statsRes] = await Promise.all([
+      const [botsRes, workflowsRes, blockedRes] = await Promise.all([
         fetch(`${API}/api/bots`),
         fetch(`${API}/api/n8n/workflows`),
-        fetch(`${API}/api/blocked`),
-        fetch(`${API}/api/admin/stats`)
+        fetch(`${API}/api/blocked`)
       ]);
 
       bots = await botsRes.json();
       workflows = await workflowsRes.json();
       blacklist = await blockedRes.json();
-      const stats = await statsRes.json();
 
-      document.getElementById('stat-total').textContent = bots.length;
-      document.getElementById('stat-active').textContent = bots.filter(b => b.status === 'active').length;
-      document.getElementById('stat-messages').textContent = stats.today_messages || 0;
-      document.getElementById('stat-blocked').textContent = blacklist.length;
+      // Sort: active first, then by sort_order
+      bots.sort((a, b) => {
+        const statusA = a.status === 'active' ? 1 : 0;
+        const statusB = b.status === 'active' ? 1 : 0;
+        if (statusA !== statusB) return statusB - statusA;
+        return (a.sort_order || 0) - (b.sort_order || 0);
+      });
 
-      renderTables();
+      renderTable();
     } catch (e) {
       console.error(e);
       showToast('שגיאה בטעינת נתונים');
@@ -801,146 +421,165 @@
     showLoader(false);
   }
 
-  function renderTables() {
-    const activeBots = bots.filter(b => b.status === 'active').sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-    const inactiveBots = bots.filter(b => b.status !== 'active').sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  function renderTable() {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+    const filter = document.getElementById('statusFilter').value;
 
-    document.getElementById('active-count').textContent = activeBots.length;
-    document.getElementById('inactive-count').textContent = inactiveBots.length;
+    bots.forEach(bot => {
+      if (filter === 'active' && bot.status !== 'active') return;
+      if (filter === 'off' && bot.status === 'active') return;
 
-    const activeBody = document.getElementById('activeTableBody');
-    const inactiveBody = document.getElementById('inactiveTableBody');
+      const tr = document.createElement('tr');
+      tr.setAttribute('data-id', bot.id);
 
-    activeBody.innerHTML = activeBots.map(bot => renderBotRow(bot)).join('');
-    inactiveBody.innerHTML = inactiveBots.map(bot => renderBotRow(bot)).join('');
+      const isActive = bot.status === 'active';
+      const waLink = `https://wa.me/${bot.phone_number}`;
+      const workflowName = bot.workflow_name || workflows.find(w => w.id === bot.workflow_id)?.name || '-- ללא --';
 
-    document.getElementById('activeEmpty').classList.toggle('hidden', activeBots.length > 0);
-    document.getElementById('inactiveEmpty').classList.toggle('hidden', inactiveBots.length > 0);
-    
-    activeBody.closest('.table-responsive').classList.toggle('hidden', activeBots.length === 0);
-    inactiveBody.closest('.table-responsive').classList.toggle('hidden', inactiveBots.length === 0);
-
-    // Init sortable
-    [activeBody, inactiveBody].forEach(tbody => {
-      if (tbody.sortable) tbody.sortable.destroy();
-      tbody.sortable = Sortable.create(tbody, {
-        handle: '.drag-handle',
-        animation: 150,
-        ghostClass: 'sortable-ghost',
-        onEnd: saveOrder
-      });
-    });
-  }
-
-  function renderBotRow(bot) {
-    const isActive = bot.status === 'active';
-    const waLink = `https://wa.me/${bot.phone_number}`;
-    const workflowName = bot.workflow_name || workflows.find(w => w.id === bot.workflow_id)?.name || '';
-
-    let workflowOpts = '<option value="">-- ללא --</option>';
-    workflows.forEach(w => {
-      workflowOpts += `<option value="${w.id}" ${w.id === bot.workflow_id ? 'selected' : ''}>${w.name}</option>`;
-    });
-
-    const accessOpts = `
-      <option value="everyone" ${bot.access_mode === 'everyone' ? 'selected' : ''}>🔓 כולם</option>
-      <option value="whitelist" ${bot.access_mode === 'whitelist' ? 'selected' : ''}>📝 רשימה לבנה</option>
-      <option value="dynamic" ${bot.access_mode === 'dynamic' ? 'selected' : ''}>⚡ דינאמי</option>
-    `;
-
-    return `
-      <tr data-id="${bot.id}">
-        <td><i class="fa-solid fa-grip-vertical drag-handle"></i></td>
-        <td style="color: #94a3b8; font-size: 0.85rem;">${bot.id}</td>
-        <td>
-          <a href="${waLink}" target="_blank" class="phone-link">
+      tr.innerHTML = `
+        <td class="drag-handle" data-label=""><i class="fa-solid fa-grip-vertical"></i></td>
+        <td style="color:#94a3b8; font-size:0.85rem;" data-label="ID">${bot.id}</td>
+        <td data-label="מספר">
+          <a href="${waLink}" target="_blank" rel="noopener noreferrer" class="phone-link" title="פתח שיחה בוואטסאפ">
             <i class="fa-brands fa-whatsapp"></i> ${bot.phone_number}
           </a>
         </td>
-        <td>
-          <select onchange="updateBot(${bot.id}, 'workflow_id', this.value, this)" style="min-width: 180px;">
-            ${workflowOpts}
-          </select>
+        <td data-label="קמפיין">
+          <div class="search-select-container" data-bot-id="${bot.id}">
+            <div class="search-select-input" onclick="toggleWorkflowDropdown(this)">${workflowName}</div>
+            <div class="search-select-dropdown">
+              <input type="text" class="search-select-search" placeholder="חפש workflow..." oninput="filterWorkflows(this)">
+              <div class="search-select-options">
+                <div class="search-select-option ${!bot.workflow_id ? 'selected' : ''}" data-value="" onclick="selectWorkflow(this, ${bot.id})">-- ללא --</div>
+                ${workflows.map(w => `
+                  <div class="search-select-option ${w.id === bot.workflow_id ? 'selected' : ''}" data-value="${w.id}" onclick="selectWorkflow(this, ${bot.id})">${w.name}</div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
         </td>
-        <td>
-          <select onchange="updateBot(${bot.id}, 'status', this.value, this)"
-                  style="font-weight: 600; color: ${isActive ? 'var(--success)' : 'var(--danger)'}; border-color: ${isActive ? 'var(--success)' : '#d1d5db'};">
+        <td data-label="סטטוס">
+          <select style="width:100%; border-color: ${isActive ? 'var(--success)' : '#ccc'}; font-weight:bold; color:${isActive ? 'var(--success)' : 'var(--danger)'}"
+                  onchange="updateBot(${bot.id}, 'status', this.value)">
             <option value="active" ${isActive ? 'selected' : ''}>פעיל</option>
             <option value="inactive" ${!isActive ? 'selected' : ''}>כבוי</option>
           </select>
         </td>
-        <td>${getTimeDisplay(bot.active_from, bot.active_until)}</td>
-        <td>
-          <select onchange="updateBot(${bot.id}, 'access_mode', this.value, this)" style="min-width: 130px;">
-            ${accessOpts}
+        <td data-label="תזמון">${getSmartDateDisplay(bot.active_from, bot.active_until)}</td>
+        <td data-label="גישה">
+          <select style="width:100%" onchange="updateBot(${bot.id}, 'access_mode', this.value)">
+            <option value="everyone" ${bot.access_mode === 'everyone' ? 'selected' : ''}>🔓 כולם</option>
+            <option value="whitelist" ${bot.access_mode === 'whitelist' ? 'selected' : ''}>📝 רשימה לבנה</option>
+            <option value="dynamic" ${bot.access_mode === 'dynamic' ? 'selected' : ''}>⚡ רשימה דינאמית</option>
           </select>
         </td>
-        <td>
-          <div style="display: flex; gap: 5px;">
-            <button class="btn-icon ${bot.access_mode === 'whitelist' ? '' : 'hidden'}" onclick="openWhitelist(${bot.id}, '${bot.phone_number}')" title="רשימה לבנה">
-              <i class="fa-solid fa-users"></i>
-            </button>
-            <button class="btn-icon" onclick="openSettings(${bot.id})" title="הגדרות">
-              <i class="fa-solid fa-gear"></i>
-            </button>
-            <button class="btn-icon delete" onclick="deleteBot(${bot.id})" title="מחק">
-              <i class="fa-solid fa-trash"></i>
-            </button>
+        <td data-label="פעולות">
+          <div style="display:flex; gap:5px; justify-content: flex-end;">
+            <button class="btn-icon" style="${bot.access_mode === 'whitelist' ? '' : 'opacity:0.3; pointer-events:none;'}"
+                onclick="openWhitelist(${bot.id}, '${bot.phone_number}')"><i class="fa-solid fa-users"></i></button>
+            <button class="btn-icon" onclick="openSettings(${bot.id})"><i class="fa-solid fa-gear"></i></button>
           </div>
         </td>
-      </tr>
-    `;
+        <td style="text-align:center" data-label="מחיקה">
+          <button class="btn-icon delete" onclick="deleteBot(${bot.id})"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    // Init sortable
+    if (tbody.sortable) tbody.sortable.destroy();
+    tbody.sortable = Sortable.create(tbody, {
+      handle: '.drag-handle',
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      onEnd: saveOrder
+    });
   }
 
-  function getTimeDisplay(from, until) {
-    const now = new Date();
+  // Searchable Workflow Dropdown
+  function toggleWorkflowDropdown(el) {
+    const dropdown = el.nextElementSibling;
+    document.querySelectorAll('.search-select-dropdown.open').forEach(d => {
+      if (d !== dropdown) d.classList.remove('open');
+    });
+    dropdown.classList.toggle('open');
+    if (dropdown.classList.contains('open')) {
+      dropdown.querySelector('.search-select-search').focus();
+    }
+  }
+
+  function filterWorkflows(input) {
+    const query = input.value.toLowerCase();
+    const options = input.nextElementSibling.querySelectorAll('.search-select-option');
+    options.forEach(opt => {
+      const text = opt.textContent.toLowerCase();
+      opt.style.display = text.includes(query) ? '' : 'none';
+    });
+  }
+
+  async function selectWorkflow(option, botId) {
+    const value = option.dataset.value;
+    const text = option.textContent;
+    const container = option.closest('.search-select-container');
     
-    if (!from && !until) {
-      return '<span style="color: #cbd5e1; font-size: 1.3rem;" title="ללא הגבלה">∞</span>';
+    container.querySelector('.search-select-input').textContent = text;
+    container.querySelector('.search-select-dropdown').classList.remove('open');
+    container.querySelectorAll('.search-select-option').forEach(o => o.classList.remove('selected'));
+    option.classList.add('selected');
+
+    const wf = workflows.find(w => w.id === value);
+    await updateBot(botId, 'workflow_id', value || null, wf?.name || null);
+  }
+
+  // Close dropdowns on outside click
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.search-select-container')) {
+      document.querySelectorAll('.search-select-dropdown.open').forEach(d => d.classList.remove('open'));
+    }
+  });
+
+  function getSmartDateDisplay(fromStr, untilStr) {
+    const now = new Date();
+    const timeFmt = (d) => d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+    const dateFmt = (d) => d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
+    const isToday = (d) => d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+
+    if (!fromStr && !untilStr) {
+      return `<span title="ללא הגבלת זמן" style="color:#cbd5e1; font-size:1.2rem;">∞</span>`;
     }
 
-    if (from) {
-      const fromDate = new Date(from);
-      if (now < fromDate) {
-        const txt = isToday(fromDate) ? `מתחיל היום ${formatTime(fromDate)}` : `מתחיל ${formatDate(fromDate)}`;
+    if (fromStr) {
+      const from = new Date(fromStr);
+      if (now < from) {
+        const txt = isToday(from) ? `מתחיל היום ב-${timeFmt(from)}` : `מתחיל ב-${dateFmt(from)}`;
         return `<span class="time-tag future"><i class="fa-regular fa-clock"></i> ${txt}</span>`;
       }
     }
 
-    if (until) {
-      const untilDate = new Date(until);
-      if (now > untilDate) {
-        return `<span class="time-tag ended">הסתיים ${formatDate(untilDate)}</span>`;
+    if (untilStr) {
+      const until = new Date(untilStr);
+      if (now > until) {
+        return `<span class="time-tag ended">הסתיים ב-${dateFmt(until)}</span>`;
+      } else {
+        if (isToday(until)) {
+          return `<span class="time-tag ending-soon"><i class="fa-solid fa-hourglass-half"></i> מסתיים היום ב-${timeFmt(until)}</span>`;
+        } else {
+          return `<span class="time-tag today"><i class="fa-regular fa-calendar-check"></i> מסתיים ב-${dateFmt(until)}</span>`;
+        }
       }
-      if (isToday(untilDate)) {
-        return `<span class="time-tag ending-soon"><i class="fa-solid fa-hourglass-half"></i> מסתיים היום ${formatTime(untilDate)}</span>`;
-      }
-      return `<span class="time-tag active"><i class="fa-regular fa-calendar-check"></i> עד ${formatDate(untilDate)}</span>`;
     }
 
-    return '<span class="time-tag active">פעיל</span>';
+    return `<span style="color:#10b981; font-size:0.8rem;">פעיל</span>`;
   }
 
-  function isToday(date) {
-    const now = new Date();
-    return date.getDate() === now.getDate() && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-  }
-
-  function formatTime(date) {
-    return date.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
-  }
-
-  function formatDate(date) {
-    return date.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
-  }
-
-  async function updateBot(id, field, value, el) {
+  async function updateBot(id, field, value, workflowName = null) {
     const bot = bots.find(b => b.id === id);
-    const data = { [field]: value || null };
+    const data = { [field]: value };
 
-    if (field === 'workflow_id') {
-      const wf = workflows.find(w => w.id === value);
-      data.workflow_name = wf?.name || null;
+    if (field === 'workflow_id' && workflowName !== null) {
+      data.workflow_name = workflowName;
     }
 
     await fetch(`${API}/api/bots/${id}`, {
@@ -950,18 +589,23 @@
     });
 
     Object.assign(bot, data);
-    
-    if (field === 'status') {
-      renderTables();
-      updateStats();
+
+    if (field === 'status' || field === 'access_mode') {
+      bots.sort((a, b) => {
+        const statusA = a.status === 'active' ? 1 : 0;
+        const statusB = b.status === 'active' ? 1 : 0;
+        if (statusA !== statusB) return statusB - statusA;
+        return (a.sort_order || 0) - (b.sort_order || 0);
+      });
+      renderTable();
     }
-    
-    showToast('נשמר');
+
+    showToast('השינויים נשמרו');
   }
 
   async function saveOrder() {
     const orders = [];
-    document.querySelectorAll('#activeTableBody tr, #inactiveTableBody tr').forEach((tr, idx) => {
+    document.querySelectorAll('#tableBody tr').forEach((tr, idx) => {
       orders.push({ id: parseInt(tr.dataset.id), sort_order: idx });
     });
 
@@ -971,46 +615,37 @@
       body: JSON.stringify({ orders })
     });
 
-    showToast('הסדר עודכן');
+    showToast('סדר הבוטים עודכן!');
   }
 
   function openSettings(id) {
     const bot = bots.find(b => b.id === id);
     document.getElementById('editBotId').value = id;
 
-    const sel = document.getElementById('editWorkflow');
-    sel.innerHTML = '<option value="">-- ללא --</option>' +
-      workflows.map(w => `<option value="${w.id}" ${w.id === bot.workflow_id ? 'selected' : ''}>${w.name}</option>`).join('');
-
-    document.getElementById('editAccess').value = bot.access_mode || 'everyone';
-    document.getElementById('editDelay').value = bot.delay_seconds || 0;
-    document.getElementById('editQuery').value = bot.dynamic_sql_template || '';
-
     fpFrom.setDate(bot.active_from || null);
     fpUntil.setDate(bot.active_until || null);
+    document.getElementById('setDelay').value = bot.delay_seconds || 0;
+    document.getElementById('setQuery').value = bot.dynamic_sql_template || '';
 
-    toggleDynamic();
+    const qs = document.getElementById('dynamicQuerySection');
+    bot.access_mode === 'dynamic' ? qs.classList.remove('hidden') : qs.classList.add('hidden');
     document.getElementById('settingsModal').classList.add('open');
   }
 
-  function toggleDynamic() {
-    document.getElementById('dynamicGroup').classList.toggle('hidden', 
-      document.getElementById('editAccess').value !== 'dynamic');
-  }
+  function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); }
 
   async function saveSettings() {
     const id = document.getElementById('editBotId').value;
-    const workflowId = document.getElementById('editWorkflow').value;
-    const workflow = workflows.find(w => w.id === workflowId);
+    const fromVal = document.getElementById('setFrom').value || null;
+    const untilVal = document.getElementById('setUntil').value || null;
+    const delayVal = parseInt(document.getElementById('setDelay').value) || 0;
+    const queryVal = document.getElementById('setQuery').value || null;
 
     const data = {
-      workflow_id: workflowId || null,
-      workflow_name: workflow?.name || null,
-      access_mode: document.getElementById('editAccess').value,
-      delay_seconds: parseInt(document.getElementById('editDelay').value) || 0,
-      dynamic_sql_template: document.getElementById('editQuery').value || null,
-      active_from: document.getElementById('editFrom').value || null,
-      active_until: document.getElementById('editUntil').value || null
+      active_from: fromVal,
+      active_until: untilVal,
+      delay_seconds: delayVal,
+      dynamic_sql_template: queryVal
     };
 
     await fetch(`${API}/api/bots/${id}`, {
@@ -1019,45 +654,52 @@
       body: JSON.stringify(data)
     });
 
-    Object.assign(bots.find(b => b.id == id), data);
-    closeModal('settingsModal');
-    renderTables();
-    showToast('ההגדרות נשמרו');
+    const bot = bots.find(b => b.id == id);
+    Object.assign(bot, data);
+    renderTable();
+    showToast('ההגדרות נשמרו בהצלחה!');
+    closeSettings();
   }
 
   async function addBot() {
-    const phone = document.getElementById('newBotPhone').value.trim();
-    if (!phone) return showToast('הזן מספר טלפון');
+    const num = document.getElementById('newBotPhone').value.trim();
+    if (!num) return showToast('הזן מספר טלפון');
 
     showLoader(true);
     const res = await fetch(`${API}/api/bots`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone_number: phone, status: 'inactive', access_mode: 'everyone' })
+      body: JSON.stringify({ phone_number: num, status: 'inactive', access_mode: 'everyone' })
     });
 
     const newBot = await res.json();
     bots.push(newBot);
     document.getElementById('newBotPhone').value = '';
-    renderTables();
-    updateStats();
+    
+    bots.sort((a, b) => {
+      const statusA = a.status === 'active' ? 1 : 0;
+      const statusB = b.status === 'active' ? 1 : 0;
+      if (statusA !== statusB) return statusB - statusA;
+      return (a.sort_order || 0) - (b.sort_order || 0);
+    });
+    
+    renderTable();
     showLoader(false);
     showToast('הבוט נוסף');
   }
 
   async function deleteBot(id) {
-    if (!confirm('למחוק את הבוט?')) return;
+    if (!confirm('למחוק בוט זה?')) return;
     await fetch(`${API}/api/bots/${id}`, { method: 'DELETE' });
     bots = bots.filter(b => b.id !== id);
-    renderTables();
-    updateStats();
+    renderTable();
     showToast('הבוט נמחק');
   }
 
   function openBlacklist() {
     currentListType = 'blacklist';
     currentBotId = null;
-    document.getElementById('listModalTitle').innerHTML = '<i class="fa-solid fa-ban"></i> מספרים חסומים';
+    document.getElementById('listTitle').innerHTML = '<i class="fa-solid fa-ban"></i> חסימות כלליות';
     renderList();
     document.getElementById('listModal').classList.add('open');
   }
@@ -1065,58 +707,57 @@
   async function openWhitelist(botId, phone) {
     currentListType = 'whitelist';
     currentBotId = botId;
-    document.getElementById('listModalTitle').innerHTML = `<i class="fa-solid fa-user-check"></i> רשימה לבנה - ${phone}`;
+    document.getElementById('listTitle').innerHTML = `<i class="fa-solid fa-users"></i> רשימה לבנה - ${phone}`;
 
+    showLoader(true);
     const res = await fetch(`${API}/api/whitelist/bot/${botId}`);
     whitelist = await res.json();
+    showLoader(false);
 
     renderList();
     document.getElementById('listModal').classList.add('open');
   }
 
   function renderList() {
-    const container = document.getElementById('listContainer');
+    const div = document.getElementById('listContainer');
     const items = currentListType === 'blacklist' ? blacklist : whitelist;
 
     if (items.length === 0) {
-      container.innerHTML = '<div class="list-empty"><i class="fa-solid fa-inbox"></i><br>אין רשומות</div>';
+      div.innerHTML = '<div class="list-empty"><i class="fa-solid fa-inbox"></i><br>אין רשומות</div>';
       return;
     }
 
-    container.innerHTML = items.map(item => `
+    div.innerHTML = items.map(item => `
       <div class="list-item">
         <span class="phone">${item.phone}</span>
-        <button class="btn-icon delete" onclick="removeFromList('${item.phone}')">
-          <i class="fa-solid fa-trash"></i>
-        </button>
+        <button class="btn-icon delete" onclick="removeFromList('${item.phone}')"><i class="fa-solid fa-trash"></i></button>
       </div>
     `).join('');
   }
 
-  async function addToList() {
-    const phone = document.getElementById('listPhoneInput').value.trim();
-    if (!phone) return;
+  async function addListItem() {
+    const num = document.getElementById('listInput').value.trim();
+    if (!num) return;
 
     if (currentListType === 'blacklist') {
       await fetch(`${API}/api/blocked`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone })
+        body: JSON.stringify({ phone: num })
       });
-      blacklist.push({ phone });
+      blacklist.push({ phone: num });
     } else {
       await fetch(`${API}/api/whitelist`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bot_id: currentBotId, phone })
+        body: JSON.stringify({ bot_id: currentBotId, phone: num })
       });
-      whitelist.push({ phone });
+      whitelist.push({ phone: num });
     }
 
-    document.getElementById('listPhoneInput').value = '';
+    document.getElementById('listInput').value = '';
     renderList();
-    updateStats();
-    showToast('נוסף');
+    showToast('נוסף בהצלחה');
   }
 
   async function removeFromList(phone) {
@@ -1128,14 +769,7 @@
       whitelist = whitelist.filter(w => w.phone !== phone);
     }
     renderList();
-    updateStats();
     showToast('נמחק');
-  }
-
-  function updateStats() {
-    document.getElementById('stat-total').textContent = bots.length;
-    document.getElementById('stat-active').textContent = bots.filter(b => b.status === 'active').length;
-    document.getElementById('stat-blocked').textContent = blacklist.length;
   }
 
   function closeModal(id) {
@@ -1143,14 +777,14 @@
   }
 
   function showLoader(show) {
-    document.getElementById('loader').style.display = show ? 'flex' : 'none';
+    document.getElementById('globalLoader').style.display = show ? 'flex' : 'none';
   }
 
   function showToast(msg) {
-    const toast = document.getElementById('toast');
-    toast.textContent = msg;
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2500);
+    const t = document.getElementById('toast');
+    t.innerText = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
   }
 </script>
 
