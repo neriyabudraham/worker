@@ -2,558 +2,295 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Bot Router - מערכת ניהול בוטים</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ניהול בוטים</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-  <link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
   <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <script src="https://npmcdn.com/flatpickr/dist/l10n/he.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    :root {
-      --bg-dark: #0f0f23;
-      --bg-card: #1a1a2e;
-      --bg-card-hover: #232342;
-      --bg-input: #16162a;
-      --primary: #6366f1;
-      --primary-hover: #818cf8;
-      --secondary: #22d3ee;
-      --success: #10b981;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      --text: #e2e8f0;
-      --text-muted: #94a3b8;
-      --border: #334155;
-      --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-      --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-      --gradient-4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-      --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-      --shadow-glow: 0 0 40px rgba(99, 102, 241, 0.3);
-    }
-
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     
     body {
       font-family: 'Heebo', sans-serif;
-      background: var(--bg-dark);
-      background-image: 
-        radial-gradient(ellipse at top, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
-        radial-gradient(ellipse at bottom, rgba(34, 211, 238, 0.05) 0%, transparent 50%);
-      min-height: 100vh;
-      margin: 0;
-      padding: 20px;
-      color: var(--text);
+      background: #f5f5f5;
+      color: #333;
+      line-height: 1.6;
     }
 
     .container {
-      max-width: 1600px;
+      max-width: 1200px;
       margin: 0 auto;
+      padding: 20px;
     }
 
     /* Header */
     .header {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 30px;
-      padding: 25px 30px;
-      background: var(--bg-card);
-      border-radius: 20px;
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow);
-    }
-    
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-    }
-    
-    .logo-icon {
-      width: 50px;
-      height: 50px;
-      background: var(--gradient-1);
-      border-radius: 15px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
-    }
-    
-    .logo h1 {
-      margin: 0;
-      font-size: 1.8rem;
-      font-weight: 800;
-      background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    
-    .logo p {
-      margin: 0;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-    }
-    
-    .header-actions {
-      display: flex;
-      gap: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
 
-    /* Stats Cards */
-    .stats-grid {
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1a73e8;
+    }
+
+    /* Stats */
+    .stats {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
     }
-    
-    .stat-card {
-      background: var(--bg-card);
-      border-radius: 16px;
-      padding: 25px;
-      border: 1px solid var(--border);
-      position: relative;
-      overflow: hidden;
-      transition: all 0.3s ease;
+
+    .stat-box {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
-    
-    .stat-card:hover {
-      transform: translateY(-5px);
-      box-shadow: var(--shadow-glow);
+
+    .stat-box .number {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #1a73e8;
     }
-    
-    .stat-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      filter: blur(40px);
-      opacity: 0.3;
-    }
-    
-    .stat-card:nth-child(1)::before { background: #6366f1; }
-    .stat-card:nth-child(2)::before { background: #10b981; }
-    .stat-card:nth-child(3)::before { background: #22d3ee; }
-    .stat-card:nth-child(4)::before { background: #f59e0b; }
-    
-    .stat-icon {
-      width: 45px;
-      height: 45px;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      margin-bottom: 15px;
-    }
-    
-    .stat-card:nth-child(1) .stat-icon { background: rgba(99, 102, 241, 0.2); color: #818cf8; }
-    .stat-card:nth-child(2) .stat-icon { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-    .stat-card:nth-child(3) .stat-icon { background: rgba(34, 211, 238, 0.2); color: #22d3ee; }
-    .stat-card:nth-child(4) .stat-icon { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
-    
-    .stat-value {
-      font-size: 2.5rem;
-      font-weight: 800;
-      margin-bottom: 5px;
-      background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    
-    .stat-label {
-      color: var(--text-muted);
+
+    .stat-box .label {
+      color: #666;
       font-size: 0.9rem;
     }
 
     /* Controls */
     .controls {
+      background: #fff;
+      padding: 15px 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
       flex-wrap: wrap;
-      gap: 15px;
-    }
-    
-    .filter-group {
-      display: flex;
-      align-items: center;
       gap: 10px;
-      background: var(--bg-card);
-      padding: 8px 15px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-    }
-    
-    .filter-group label {
-      color: var(--text-muted);
-      font-size: 0.85rem;
-    }
-    
-    .search-box {
-      display: flex;
-      align-items: center;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 0 15px;
-      transition: all 0.3s;
-    }
-    
-    .search-box:focus-within {
-      border-color: var(--primary);
-      box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
-    }
-    
-    .search-box i { color: var(--text-muted); }
-    
-    .search-box input {
-      background: transparent;
-      border: none;
-      padding: 12px;
-      color: var(--text);
-      font-family: inherit;
-      width: 200px;
-      outline: none;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
 
-    /* Bot Cards Grid */
-    .bots-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-      gap: 20px;
+    .controls-right {
+      display: flex;
+      gap: 10px;
+      align-items: center;
     }
-    
-    .bot-card {
-      background: var(--bg-card);
-      border-radius: 20px;
-      padding: 25px;
-      border: 1px solid var(--border);
-      transition: all 0.3s ease;
-      position: relative;
+
+    /* Table */
+    .table-container {
+      background: #fff;
+      border-radius: 8px;
       overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
-    
-    .bot-card:hover {
-      background: var(--bg-card-hover);
-      transform: translateY(-3px);
-      box-shadow: var(--shadow);
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
     }
-    
-    .bot-card.inactive {
-      opacity: 0.6;
-    }
-    
-    .bot-card.inactive:hover {
-      opacity: 1;
-    }
-    
-    .bot-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 20px;
-    }
-    
-    .bot-phone {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    
-    .bot-phone-icon {
-      width: 45px;
-      height: 45px;
-      background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      color: white;
-      box-shadow: 0 8px 20px rgba(37, 211, 102, 0.3);
-    }
-    
-    .bot-phone-number {
-      font-family: 'JetBrains Mono', 'Courier New', monospace;
-      font-size: 1.1rem;
+
+    th {
+      background: #f8f9fa;
+      padding: 15px;
+      text-align: right;
       font-weight: 600;
-      color: var(--text);
-      text-decoration: none;
-      transition: color 0.2s;
+      color: #555;
+      border-bottom: 2px solid #e9ecef;
     }
-    
-    .bot-phone-number:hover {
+
+    td {
+      padding: 15px;
+      border-bottom: 1px solid #e9ecef;
+      vertical-align: middle;
+    }
+
+    tr:hover {
+      background: #f8f9fa;
+    }
+
+    /* Phone Link */
+    .phone-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #333;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .phone-link i {
       color: #25D366;
     }
-    
-    .bot-id {
-      font-size: 0.75rem;
-      color: var(--text-muted);
+
+    .phone-link:hover {
+      color: #25D366;
     }
-    
-    .bot-status {
-      display: flex;
+
+    /* Status Badge */
+    .status {
+      display: inline-flex;
       align-items: center;
-      gap: 8px;
-    }
-    
-    .status-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      animation: pulse 2s infinite;
-    }
-    
-    .status-dot.active {
-      background: var(--success);
-      box-shadow: 0 0 10px var(--success);
-    }
-    
-    .status-dot.inactive {
-      background: var(--text-muted);
-      animation: none;
-    }
-    
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-    
-    .bot-workflow {
-      background: var(--bg-input);
-      border-radius: 12px;
-      padding: 15px;
-      margin-bottom: 15px;
-    }
-    
-    .bot-workflow-label {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 8px;
-    }
-    
-    .bot-workflow-name {
-      font-weight: 600;
-      color: var(--secondary);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    
-    .bot-workflow-name.empty {
-      color: var(--text-muted);
-      font-style: italic;
-    }
-    
-    .bot-meta {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 20px;
-    }
-    
-    .meta-item {
-      background: var(--bg-input);
-      border-radius: 10px;
-      padding: 12px;
-    }
-    
-    .meta-label {
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 5px;
-    }
-    
-    .meta-value {
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
       font-weight: 500;
-      font-size: 0.9rem;
     }
-    
+
+    .status.active {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status.inactive {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    /* Time Badge */
     .time-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 500;
+      font-size: 0.85rem;
+      color: #666;
     }
-    
-    .time-badge.active { background: rgba(16, 185, 129, 0.2); color: #34d399; }
-    .time-badge.future { background: rgba(99, 102, 241, 0.2); color: #818cf8; }
-    .time-badge.ending { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
-    .time-badge.expired { background: rgba(239, 68, 68, 0.2); color: #f87171; }
-    
+
+    .time-badge.expired {
+      color: #dc3545;
+    }
+
+    .time-badge.ending {
+      color: #ffc107;
+    }
+
+    /* Access Badge */
     .access-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+      display: inline-block;
       padding: 4px 10px;
-      border-radius: 20px;
+      border-radius: 4px;
       font-size: 0.8rem;
-      font-weight: 500;
-    }
-    
-    .access-badge.everyone { background: rgba(34, 211, 238, 0.2); color: #22d3ee; }
-    .access-badge.whitelist { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
-    .access-badge.dynamic { background: rgba(251, 146, 60, 0.2); color: #fb923c; }
-    
-    .bot-actions {
-      display: flex;
-      gap: 8px;
-      padding-top: 15px;
-      border-top: 1px solid var(--border);
-    }
-    
-    .bot-actions .btn {
-      flex: 1;
-      justify-content: center;
+      background: #e9ecef;
     }
 
     /* Buttons */
     .btn {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 10px 18px;
-      border-radius: 10px;
+      gap: 6px;
+      padding: 8px 16px;
       border: none;
+      border-radius: 6px;
       cursor: pointer;
       font-family: inherit;
-      font-weight: 600;
       font-size: 0.9rem;
-      transition: all 0.3s ease;
+      font-weight: 500;
+      transition: all 0.2s;
     }
-    
+
     .btn-primary {
-      background: var(--gradient-1);
-      color: white;
-      box-shadow: 0 5px 20px rgba(99, 102, 241, 0.4);
+      background: #1a73e8;
+      color: #fff;
     }
-    
+
     .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(99, 102, 241, 0.5);
+      background: #1557b0;
     }
-    
+
     .btn-secondary {
-      background: var(--bg-input);
-      color: var(--text);
-      border: 1px solid var(--border);
+      background: #e9ecef;
+      color: #333;
     }
-    
+
     .btn-secondary:hover {
-      background: var(--bg-card-hover);
-      border-color: var(--primary);
+      background: #dee2e6;
     }
-    
+
     .btn-danger {
-      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-      color: white;
+      background: #dc3545;
+      color: #fff;
     }
-    
+
     .btn-success {
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-      color: white;
+      background: #28a745;
+      color: #fff;
     }
-    
+
     .btn-sm {
-      padding: 8px 14px;
+      padding: 6px 12px;
       font-size: 0.85rem;
     }
-    
+
     .btn-icon {
-      width: 36px;
-      height: 36px;
+      width: 32px;
+      height: 32px;
       padding: 0;
       justify-content: center;
-      border-radius: 10px;
-      background: var(--bg-input);
-      color: var(--text-muted);
-      border: 1px solid transparent;
-    }
-    
-    .btn-icon:hover {
-      background: var(--bg-card-hover);
-      color: var(--text);
-      border-color: var(--border);
-    }
-    
-    .btn-icon.danger:hover {
-      background: rgba(239, 68, 68, 0.2);
-      color: #f87171;
-      border-color: rgba(239, 68, 68, 0.3);
+      background: transparent;
+      color: #666;
+      border: 1px solid #ddd;
+      border-radius: 6px;
     }
 
-    /* Select & Input */
-    select, input[type="text"], input[type="tel"], input[type="number"], input[type="url"] {
-      background: var(--bg-input);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 14px;
-      color: var(--text);
+    .btn-icon:hover {
+      background: #f8f9fa;
+      color: #333;
+    }
+
+    .btn-icon.danger:hover {
+      background: #fee;
+      color: #dc3545;
+      border-color: #dc3545;
+    }
+
+    /* Actions */
+    .actions {
+      display: flex;
+      gap: 5px;
+    }
+
+    /* Add Bot */
+    .add-bot {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      flex-wrap: wrap;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .add-bot label {
+      font-weight: 600;
+      color: #1a73e8;
+    }
+
+    /* Form Elements */
+    input, select {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
       font-family: inherit;
       font-size: 0.9rem;
-      transition: all 0.3s;
-    }
-    
-    select:focus, input:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
-    }
-    
-    select {
-      cursor: pointer;
     }
 
-    /* Add Bot Section */
-    .add-bot-section {
-      background: var(--bg-card);
-      border-radius: 20px;
-      padding: 25px;
-      margin-top: 30px;
-      border: 2px dashed var(--border);
-      transition: all 0.3s;
-    }
-    
-    .add-bot-section:hover {
-      border-color: var(--primary);
-    }
-    
-    .add-bot-content {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      flex-wrap: wrap;
-    }
-    
-    .add-bot-title {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 600;
-      color: var(--primary);
-    }
-    
-    .add-bot-title i {
-      font-size: 1.2rem;
+    input:focus, select:focus {
+      outline: none;
+      border-color: #1a73e8;
     }
 
     /* Modal */
@@ -564,129 +301,124 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(8px);
+      background: rgba(0,0,0,0.5);
       z-index: 1000;
       justify-content: center;
       align-items: center;
       padding: 20px;
     }
-    
+
     .modal-overlay.open {
       display: flex;
     }
-    
+
     .modal {
-      background: var(--bg-card);
-      border-radius: 24px;
+      background: #fff;
+      border-radius: 12px;
       width: 100%;
-      max-width: 550px;
+      max-width: 500px;
       max-height: 90vh;
       overflow-y: auto;
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow);
-      animation: modalSlide 0.3s ease;
     }
-    
-    @keyframes modalSlide {
-      from { transform: translateY(30px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-    
+
     .modal-header {
+      padding: 20px;
+      border-bottom: 1px solid #e9ecef;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 25px;
-      border-bottom: 1px solid var(--border);
     }
-    
+
     .modal-header h3 {
-      margin: 0;
-      font-size: 1.3rem;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      font-size: 1.2rem;
     }
-    
+
     .modal-body {
-      padding: 25px;
+      padding: 20px;
     }
-    
+
     .modal-footer {
-      padding: 20px 25px;
-      border-top: 1px solid var(--border);
+      padding: 15px 20px;
+      border-top: 1px solid #e9ecef;
       display: flex;
-      gap: 10px;
       justify-content: flex-end;
+      gap: 10px;
     }
-    
+
     .form-group {
-      margin-bottom: 20px;
+      margin-bottom: 15px;
     }
-    
+
     .form-group label {
       display: block;
-      margin-bottom: 8px;
+      margin-bottom: 5px;
       font-weight: 500;
-      color: var(--text-muted);
-      font-size: 0.85rem;
+      color: #555;
     }
-    
-    .form-group input, .form-group select, .form-group textarea {
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
       width: 100%;
     }
-    
+
     .form-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 15px;
     }
-    
-    .sql-editor {
-      background: #1e1e2e;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 15px;
-      font-family: 'JetBrains Mono', 'Courier New', monospace;
+
+    textarea {
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-family: monospace;
       font-size: 0.85rem;
-      color: #a6e3a1;
       resize: vertical;
-      min-height: 120px;
-      direction: ltr;
-      text-align: left;
+      min-height: 100px;
+    }
+
+    /* List Items */
+    .list-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 15px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+
+    .list-empty {
+      text-align: center;
+      padding: 30px;
+      color: #999;
+    }
+
+    .list-container {
+      max-height: 250px;
+      overflow-y: auto;
     }
 
     /* Toast */
     .toast {
       position: fixed;
-      bottom: 30px;
+      bottom: 20px;
       left: 50%;
       transform: translateX(-50%) translateY(100px);
-      background: var(--bg-card);
-      color: var(--text);
-      padding: 15px 30px;
-      border-radius: 50px;
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow);
+      background: #333;
+      color: #fff;
+      padding: 12px 24px;
+      border-radius: 8px;
       opacity: 0;
-      transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-      z-index: 3000;
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      transition: all 0.3s;
+      z-index: 2000;
     }
-    
+
     .toast.show {
       opacity: 1;
       transform: translateX(-50%) translateY(0);
     }
-    
-    .toast.success { border-color: var(--success); }
-    .toast.success i { color: var(--success); }
-    .toast.error { border-color: var(--danger); }
-    .toast.error i { color: var(--danger); }
 
     /* Loader */
     .loader-overlay {
@@ -696,75 +428,36 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(15, 15, 35, 0.9);
-      z-index: 2000;
+      background: rgba(255,255,255,0.8);
+      z-index: 1500;
       justify-content: center;
       align-items: center;
     }
-    
+
     .loader {
-      width: 60px;
-      height: 60px;
-      border: 3px solid var(--border);
-      border-top-color: var(--primary);
+      width: 40px;
+      height: 40px;
+      border: 3px solid #e9ecef;
+      border-top-color: #1a73e8;
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
-    
+
     @keyframes spin { 100% { transform: rotate(360deg); } }
 
     /* Responsive */
     @media (max-width: 768px) {
-      .header { flex-direction: column; gap: 20px; text-align: center; }
-      .header-actions { width: 100%; justify-content: center; }
-      .bots-grid { grid-template-columns: 1fr; }
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
-      .controls { justify-content: center; }
-      .add-bot-content { justify-content: center; text-align: center; }
+      .header { flex-direction: column; gap: 15px; text-align: center; }
+      .controls { flex-direction: column; }
+      .controls-right { width: 100%; justify-content: center; }
+      table { font-size: 0.85rem; }
+      th, td { padding: 10px; }
       .form-row { grid-template-columns: 1fr; }
     }
 
-    /* Whitelist Modal */
-    .list-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 15px;
-      background: var(--bg-input);
-      border-radius: 10px;
-      margin-bottom: 8px;
-    }
-    
-    .list-item-phone {
-      font-family: 'JetBrains Mono', monospace;
-      font-weight: 500;
-    }
-    
-    .list-empty {
-      text-align: center;
-      padding: 40px;
-      color: var(--text-muted);
-    }
-    
-    .list-container {
-      max-height: 300px;
-      overflow-y: auto;
-      padding: 5px;
-    }
-    
-    /* Flatpickr Dark Theme Override */
-    .flatpickr-calendar {
-      background: var(--bg-card) !important;
-      border: 1px solid var(--border) !important;
-      box-shadow: var(--shadow) !important;
-    }
-    
-    .flatpickr-day {
-      color: var(--text) !important;
-    }
-    
-    .flatpickr-day:hover {
-      background: var(--primary) !important;
+    /* Hide columns on mobile */
+    @media (max-width: 900px) {
+      .hide-mobile { display: none; }
     }
   </style>
 </head>
@@ -775,80 +468,70 @@
 </div>
 
 <div class="container">
-  <!-- Header -->
-  <header class="header">
-    <div class="logo">
-      <div class="logo-icon">🤖</div>
-      <div>
-        <h1>Bot Router</h1>
-        <p>מערכת ניהול וניתוב וובהוקים</p>
-      </div>
-    </div>
-    <div class="header-actions">
+  <div class="header">
+    <h1><i class="fa-solid fa-robot"></i> ניהול בוטים</h1>
+    <div>
       <button class="btn btn-secondary" onclick="openBlacklist()">
         <i class="fa-solid fa-ban"></i> חסומים
       </button>
-      <button class="btn btn-secondary" onclick="loadData()">
-        <i class="fa-solid fa-rotate"></i> רענן
-      </button>
-    </div>
-  </header>
-
-  <!-- Stats -->
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-icon"><i class="fa-solid fa-robot"></i></div>
-      <div class="stat-value" id="stat-total">0</div>
-      <div class="stat-label">סה״כ בוטים</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon"><i class="fa-solid fa-circle-check"></i></div>
-      <div class="stat-value" id="stat-active">0</div>
-      <div class="stat-label">בוטים פעילים</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon"><i class="fa-solid fa-message"></i></div>
-      <div class="stat-value" id="stat-messages">0</div>
-      <div class="stat-label">הודעות היום</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon"><i class="fa-solid fa-shield-halved"></i></div>
-      <div class="stat-value" id="stat-blocked">0</div>
-      <div class="stat-label">מספרים חסומים</div>
     </div>
   </div>
 
-  <!-- Controls -->
+  <div class="stats">
+    <div class="stat-box">
+      <div class="number" id="stat-total">0</div>
+      <div class="label">סה״כ בוטים</div>
+    </div>
+    <div class="stat-box">
+      <div class="number" id="stat-active">0</div>
+      <div class="label">פעילים</div>
+    </div>
+    <div class="stat-box">
+      <div class="number" id="stat-messages">0</div>
+      <div class="label">הודעות היום</div>
+    </div>
+    <div class="stat-box">
+      <div class="number" id="stat-blocked">0</div>
+      <div class="label">חסומים</div>
+    </div>
+  </div>
+
   <div class="controls">
-    <div class="filter-group">
-      <label><i class="fa-solid fa-filter"></i></label>
+    <div>
       <select id="statusFilter" onchange="renderBots()">
         <option value="all">כל הבוטים</option>
-        <option value="active">פעילים בלבד</option>
-        <option value="inactive">כבויים בלבד</option>
+        <option value="active">פעילים</option>
+        <option value="inactive">כבויים</option>
       </select>
     </div>
-    <div class="search-box">
-      <i class="fa-solid fa-search"></i>
+    <div class="controls-right">
       <input type="text" id="searchInput" placeholder="חיפוש..." oninput="renderBots()">
+      <button class="btn btn-secondary btn-sm" onclick="loadData()">
+        <i class="fa-solid fa-refresh"></i>
+      </button>
     </div>
   </div>
 
-  <!-- Bots Grid -->
-  <div class="bots-grid" id="botsGrid"></div>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>מספר</th>
+          <th>Workflow</th>
+          <th>סטטוס</th>
+          <th class="hide-mobile">תזמון</th>
+          <th class="hide-mobile">גישה</th>
+          <th>פעולות</th>
+        </tr>
+      </thead>
+      <tbody id="botsTable"></tbody>
+    </table>
+  </div>
 
-  <!-- Add Bot Section -->
-  <div class="add-bot-section">
-    <div class="add-bot-content">
-      <div class="add-bot-title">
-        <i class="fa-solid fa-plus-circle"></i>
-        <span>הוספת בוט חדש</span>
-      </div>
-      <input type="tel" id="newBotPhone" placeholder="מספר טלפון (972...)" style="width: 250px;">
-      <button class="btn btn-primary" onclick="addBot()">
-        <i class="fa-solid fa-plus"></i> הוסף
-      </button>
-    </div>
+  <div class="add-bot">
+    <label><i class="fa-solid fa-plus"></i> הוסף בוט:</label>
+    <input type="tel" id="newBotPhone" placeholder="מספר טלפון (972...)" style="width: 200px;">
+    <button class="btn btn-primary" onclick="addBot()">הוסף</button>
   </div>
 </div>
 
@@ -856,7 +539,7 @@
 <div class="modal-overlay" id="settingsModal">
   <div class="modal">
     <div class="modal-header">
-      <h3><i class="fa-solid fa-gear"></i> הגדרות בוט</h3>
+      <h3>הגדרות בוט</h3>
       <button class="btn-icon" onclick="closeModal('settingsModal')">
         <i class="fa-solid fa-xmark"></i>
       </button>
@@ -865,63 +548,59 @@
       <input type="hidden" id="editBotId">
       
       <div class="form-group">
-        <label><i class="fa-solid fa-diagram-project"></i> Workflow</label>
+        <label>Workflow</label>
         <select id="editWorkflow"></select>
       </div>
       
       <div class="form-group">
-        <label><i class="fa-solid fa-lock-open"></i> מצב גישה</label>
-        <select id="editAccess" onchange="toggleDynamicQuery()">
-          <option value="everyone">🔓 כולם</option>
-          <option value="whitelist">📝 רשימה לבנה</option>
-          <option value="dynamic">⚡ שאילתה דינאמית</option>
+        <label>מצב גישה</label>
+        <select id="editAccess" onchange="toggleDynamic()">
+          <option value="everyone">כולם</option>
+          <option value="whitelist">רשימה לבנה</option>
+          <option value="dynamic">שאילתה דינאמית</option>
         </select>
       </div>
       
       <div class="form-row">
         <div class="form-group">
-          <label><i class="fa-regular fa-calendar"></i> פעיל מ-</label>
+          <label>פעיל מ-</label>
           <input type="text" id="editFrom" placeholder="בחר תאריך...">
         </div>
         <div class="form-group">
-          <label><i class="fa-regular fa-calendar-check"></i> פעיל עד-</label>
+          <label>פעיל עד-</label>
           <input type="text" id="editUntil" placeholder="בחר תאריך...">
         </div>
       </div>
       
       <div class="form-group">
-        <label><i class="fa-solid fa-hourglass-half"></i> השהיה לפני תגובה (שניות)</label>
-        <input type="number" id="editDelay" value="0" min="0" style="width: 120px;">
+        <label>השהיה (שניות)</label>
+        <input type="number" id="editDelay" value="0" min="0" style="width: 100px;">
       </div>
       
-      <div class="form-group" id="dynamicQueryGroup" style="display: none;">
-        <label><i class="fa-solid fa-database"></i> שאילתה דינאמית (SQL)</label>
-        <textarea class="sql-editor" id="editQuery" placeholder="SELECT * FROM users WHERE phone LIKE '%{{phone}}'"></textarea>
-        <small style="color: var(--text-muted); margin-top: 5px; display: block;">
-          💡 השתמש ב-<code>{{phone}}</code> למספר הלקוח (9 ספרות אחרונות)
-        </small>
+      <div class="form-group" id="dynamicGroup" style="display: none;">
+        <label>שאילתה דינאמית (SQL)</label>
+        <textarea id="editQuery" placeholder="SELECT * FROM users WHERE phone LIKE '%{{phone}}'"></textarea>
+        <small style="color: #666;">השתמש ב-{{phone}} למספר הלקוח</small>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('settingsModal')">ביטול</button>
-      <button class="btn btn-primary" onclick="saveSettings()">
-        <i class="fa-solid fa-check"></i> שמור
-      </button>
+      <button class="btn btn-primary" onclick="saveSettings()">שמור</button>
     </div>
   </div>
 </div>
 
-<!-- Blacklist Modal -->
+<!-- List Modal -->
 <div class="modal-overlay" id="listModal">
   <div class="modal">
     <div class="modal-header">
-      <h3 id="listModalTitle"><i class="fa-solid fa-ban"></i> ניהול רשימה</h3>
+      <h3 id="listModalTitle">ניהול רשימה</h3>
       <button class="btn-icon" onclick="closeModal('listModal')">
         <i class="fa-solid fa-xmark"></i>
       </button>
     </div>
     <div class="modal-body">
-      <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+      <div style="display: flex; gap: 10px; margin-bottom: 15px;">
         <input type="tel" id="listPhoneInput" placeholder="מספר טלפון..." style="flex: 1;">
         <button class="btn btn-primary" onclick="addToList()">
           <i class="fa-solid fa-plus"></i>
@@ -932,10 +611,7 @@
   </div>
 </div>
 
-<div class="toast" id="toast">
-  <i class="fa-solid fa-check-circle"></i>
-  <span id="toastMessage"></span>
-</div>
+<div class="toast" id="toast"></div>
 
 <script>
   const API = '';
@@ -945,19 +621,11 @@
   let whitelist = [];
   let currentListType = '';
   let currentBotId = null;
-  
   let fpFrom, fpUntil;
 
   document.addEventListener('DOMContentLoaded', () => {
-    const fpConfig = {
-      enableTime: true,
-      dateFormat: "Y-m-d H:i",
-      time_24hr: true,
-      locale: "he",
-      disableMobile: true
-    };
-    fpFrom = flatpickr("#editFrom", fpConfig);
-    fpUntil = flatpickr("#editUntil", fpConfig);
+    fpFrom = flatpickr("#editFrom", { enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, locale: "he" });
+    fpUntil = flatpickr("#editUntil", { enableTime: true, dateFormat: "Y-m-d H:i", time_24hr: true, locale: "he" });
     loadData();
   });
 
@@ -989,7 +657,7 @@
       renderBots();
     } catch (e) {
       console.error(e);
-      showToast('שגיאה בטעינת נתונים', 'error');
+      showToast('שגיאה בטעינת נתונים');
     }
     showLoader(false);
   }
@@ -997,7 +665,7 @@
   function renderBots() {
     const filter = document.getElementById('statusFilter').value;
     const search = document.getElementById('searchInput').value.toLowerCase();
-    const grid = document.getElementById('botsGrid');
+    const tbody = document.getElementById('botsTable');
     
     let filtered = bots.filter(bot => {
       if (filter === 'active' && bot.status !== 'active') return false;
@@ -1006,102 +674,87 @@
       return true;
     });
     
-    grid.innerHTML = filtered.map(bot => {
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999; padding: 40px;">אין בוטים להצגה</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = filtered.map(bot => {
       const isActive = bot.status === 'active';
       const waLink = `https://wa.me/${bot.phone_number}`;
-      const workflowName = bot.workflow_name || workflows.find(w => w.id === bot.workflow_id)?.name;
+      const workflowName = bot.workflow_name || workflows.find(w => w.id === bot.workflow_id)?.name || '—';
       
       return `
-        <div class="bot-card ${isActive ? '' : 'inactive'}">
-          <div class="bot-header">
-            <div class="bot-phone">
-              <div class="bot-phone-icon">
-                <i class="fa-brands fa-whatsapp"></i>
-              </div>
-              <div>
-                <a href="${waLink}" target="_blank" class="bot-phone-number">${bot.phone_number}</a>
-                <div class="bot-id">#${bot.id}</div>
-              </div>
-            </div>
-            <div class="bot-status">
-              <div class="status-dot ${isActive ? 'active' : 'inactive'}"></div>
-              <span style="font-size: 0.85rem; color: ${isActive ? 'var(--success)' : 'var(--text-muted)'}">${isActive ? 'פעיל' : 'כבוי'}</span>
-            </div>
-          </div>
-          
-          <div class="bot-workflow">
-            <div class="bot-workflow-label">Workflow</div>
-            <div class="bot-workflow-name ${workflowName ? '' : 'empty'}">
-              ${workflowName ? `<i class="fa-solid fa-diagram-project"></i> ${workflowName}` : 'לא מוגדר'}
-            </div>
-          </div>
-          
-          <div class="bot-meta">
-            <div class="meta-item">
-              <div class="meta-label">תזמון</div>
-              <div class="meta-value">${getTimeBadge(bot.active_from, bot.active_until)}</div>
-            </div>
-            <div class="meta-item">
-              <div class="meta-label">גישה</div>
-              <div class="meta-value">${getAccessBadge(bot.access_mode)}</div>
-            </div>
-          </div>
-          
-          <div class="bot-actions">
-            <button class="btn btn-sm ${isActive ? 'btn-secondary' : 'btn-success'}" onclick="toggleStatus(${bot.id})">
-              <i class="fa-solid fa-power-off"></i> ${isActive ? 'כבה' : 'הפעל'}
-            </button>
-            <button class="btn btn-sm btn-secondary" onclick="openSettings(${bot.id})">
-              <i class="fa-solid fa-gear"></i> הגדרות
-            </button>
-            ${bot.access_mode === 'whitelist' ? `
-              <button class="btn-icon" onclick="openWhitelist(${bot.id}, '${bot.phone_number}')" title="רשימה לבנה">
-                <i class="fa-solid fa-users"></i>
+        <tr>
+          <td>
+            <a href="${waLink}" target="_blank" class="phone-link">
+              <i class="fa-brands fa-whatsapp"></i>
+              ${bot.phone_number}
+            </a>
+          </td>
+          <td>${workflowName}</td>
+          <td>
+            <span class="status ${isActive ? 'active' : 'inactive'}">
+              <i class="fa-solid fa-circle" style="font-size: 8px;"></i>
+              ${isActive ? 'פעיל' : 'כבוי'}
+            </span>
+          </td>
+          <td class="hide-mobile">
+            <span class="time-badge ${getTimeClass(bot.active_until)}">${getTimeText(bot.active_from, bot.active_until)}</span>
+          </td>
+          <td class="hide-mobile">
+            <span class="access-badge">${getAccessText(bot.access_mode)}</span>
+          </td>
+          <td>
+            <div class="actions">
+              <button class="btn-icon" onclick="toggleStatus(${bot.id})" title="${isActive ? 'כבה' : 'הפעל'}">
+                <i class="fa-solid fa-power-off" style="color: ${isActive ? '#28a745' : '#dc3545'}"></i>
               </button>
-            ` : ''}
-            <button class="btn-icon danger" onclick="deleteBot(${bot.id})" title="מחיקה">
-              <i class="fa-solid fa-trash"></i>
-            </button>
-          </div>
-        </div>
+              <button class="btn-icon" onclick="openSettings(${bot.id})" title="הגדרות">
+                <i class="fa-solid fa-gear"></i>
+              </button>
+              ${bot.access_mode === 'whitelist' ? `
+                <button class="btn-icon" onclick="openWhitelist(${bot.id}, '${bot.phone_number}')" title="רשימה לבנה">
+                  <i class="fa-solid fa-users"></i>
+                </button>
+              ` : ''}
+              <button class="btn-icon danger" onclick="deleteBot(${bot.id})" title="מחק">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
       `;
     }).join('');
   }
 
-  function getTimeBadge(from, until) {
+  function getTimeClass(until) {
+    if (!until) return '';
+    const d = new Date(until);
     const now = new Date();
-    
-    if (!from && !until) {
-      return '<span class="time-badge active"><i class="fa-solid fa-infinity"></i> ללא הגבלה</span>';
-    }
-    
-    if (from && new Date(from) > now) {
-      const d = new Date(from);
-      return `<span class="time-badge future"><i class="fa-solid fa-clock"></i> מתחיל ${d.toLocaleDateString('he-IL')}</span>`;
-    }
-    
-    if (until) {
-      const d = new Date(until);
-      if (d < now) {
-        return `<span class="time-badge expired"><i class="fa-solid fa-calendar-xmark"></i> הסתיים</span>`;
-      }
-      const daysLeft = Math.ceil((d - now) / (1000 * 60 * 60 * 24));
-      if (daysLeft <= 3) {
-        return `<span class="time-badge ending"><i class="fa-solid fa-hourglass-half"></i> ${daysLeft} ימים</span>`;
-      }
-      return `<span class="time-badge active"><i class="fa-solid fa-calendar-check"></i> עד ${d.toLocaleDateString('he-IL')}</span>`;
-    }
-    
-    return '<span class="time-badge active"><i class="fa-solid fa-check"></i> פעיל</span>';
+    if (d < now) return 'expired';
+    const days = Math.ceil((d - now) / (1000 * 60 * 60 * 24));
+    if (days <= 3) return 'ending';
+    return '';
   }
 
-  function getAccessBadge(mode) {
-    const badges = {
-      everyone: '<span class="access-badge everyone"><i class="fa-solid fa-globe"></i> כולם</span>',
-      whitelist: '<span class="access-badge whitelist"><i class="fa-solid fa-list-check"></i> רשימה לבנה</span>',
-      dynamic: '<span class="access-badge dynamic"><i class="fa-solid fa-bolt"></i> דינאמי</span>'
-    };
-    return badges[mode] || badges.everyone;
+  function getTimeText(from, until) {
+    if (!from && !until) return '∞';
+    if (until) {
+      const d = new Date(until);
+      const now = new Date();
+      if (d < now) return 'הסתיים';
+      return 'עד ' + d.toLocaleDateString('he-IL');
+    }
+    if (from) {
+      const d = new Date(from);
+      return 'מ-' + d.toLocaleDateString('he-IL');
+    }
+    return '∞';
+  }
+
+  function getAccessText(mode) {
+    return { everyone: 'כולם', whitelist: 'רשימה לבנה', dynamic: 'דינאמי' }[mode] || 'כולם';
   }
 
   async function toggleStatus(id) {
@@ -1124,8 +777,8 @@
     const bot = bots.find(b => b.id === id);
     document.getElementById('editBotId').value = id;
     
-    const workflowSelect = document.getElementById('editWorkflow');
-    workflowSelect.innerHTML = '<option value="">-- ללא --</option>' + 
+    const sel = document.getElementById('editWorkflow');
+    sel.innerHTML = '<option value="">— ללא —</option>' + 
       workflows.map(w => `<option value="${w.id}" ${w.id === bot.workflow_id ? 'selected' : ''}>${w.name}</option>`).join('');
     
     document.getElementById('editAccess').value = bot.access_mode || 'everyone';
@@ -1135,13 +788,13 @@
     fpFrom.setDate(bot.active_from || null);
     fpUntil.setDate(bot.active_until || null);
     
-    toggleDynamicQuery();
+    toggleDynamic();
     document.getElementById('settingsModal').classList.add('open');
   }
 
-  function toggleDynamicQuery() {
-    const show = document.getElementById('editAccess').value === 'dynamic';
-    document.getElementById('dynamicQueryGroup').style.display = show ? 'block' : 'none';
+  function toggleDynamic() {
+    document.getElementById('dynamicGroup').style.display = 
+      document.getElementById('editAccess').value === 'dynamic' ? 'block' : 'none';
   }
 
   async function saveSettings() {
@@ -1165,9 +818,7 @@
       body: JSON.stringify(data)
     });
     
-    const bot = bots.find(b => b.id == id);
-    Object.assign(bot, data);
-    
+    Object.assign(bots.find(b => b.id == id), data);
     closeModal('settingsModal');
     renderBots();
     showToast('ההגדרות נשמרו');
@@ -1175,28 +826,22 @@
 
   async function addBot() {
     const phone = document.getElementById('newBotPhone').value.trim();
-    if (!phone) return showToast('הזן מספר טלפון', 'error');
+    if (!phone) return showToast('הזן מספר טלפון');
     
     showLoader(true);
-    const res = await fetch(`${API}/api/bots`, {
+    await fetch(`${API}/api/bots`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone_number: phone, status: 'inactive', access_mode: 'everyone' })
     });
     
-    if (res.ok) {
-      document.getElementById('newBotPhone').value = '';
-      await loadData();
-      showToast('הבוט נוסף בהצלחה');
-    } else {
-      showLoader(false);
-      showToast('שגיאה בהוספת בוט', 'error');
-    }
+    document.getElementById('newBotPhone').value = '';
+    await loadData();
+    showToast('הבוט נוסף');
   }
 
   async function deleteBot(id) {
     if (!confirm('למחוק את הבוט?')) return;
-    
     await fetch(`${API}/api/bots/${id}`, { method: 'DELETE' });
     bots = bots.filter(b => b.id !== id);
     renderBots();
@@ -1207,7 +852,7 @@
   function openBlacklist() {
     currentListType = 'blacklist';
     currentBotId = null;
-    document.getElementById('listModalTitle').innerHTML = '<i class="fa-solid fa-ban"></i> מספרים חסומים (גלובלי)';
+    document.getElementById('listModalTitle').textContent = 'מספרים חסומים';
     renderList();
     document.getElementById('listModal').classList.add('open');
   }
@@ -1215,7 +860,7 @@
   async function openWhitelist(botId, phone) {
     currentListType = 'whitelist';
     currentBotId = botId;
-    document.getElementById('listModalTitle').innerHTML = `<i class="fa-solid fa-user-check"></i> רשימה לבנה - ${phone}`;
+    document.getElementById('listModalTitle').textContent = 'רשימה לבנה - ' + phone;
     
     const res = await fetch(`${API}/api/whitelist/bot/${botId}`);
     whitelist = await res.json();
@@ -1229,13 +874,13 @@
     const items = currentListType === 'blacklist' ? blacklist : whitelist;
     
     if (items.length === 0) {
-      container.innerHTML = '<div class="list-empty"><i class="fa-solid fa-inbox"></i><br>אין רשומות</div>';
+      container.innerHTML = '<div class="list-empty">אין רשומות</div>';
       return;
     }
     
     container.innerHTML = items.map(item => `
       <div class="list-item">
-        <span class="list-item-phone">${item.phone}</span>
+        <span>${item.phone}</span>
         <button class="btn-icon danger" onclick="removeFromList('${item.phone}')">
           <i class="fa-solid fa-trash"></i>
         </button>
@@ -1266,7 +911,7 @@
     document.getElementById('listPhoneInput').value = '';
     renderList();
     updateStats();
-    showToast('נוסף בהצלחה');
+    showToast('נוסף');
   }
 
   async function removeFromList(phone) {
@@ -1279,7 +924,7 @@
     }
     renderList();
     updateStats();
-    showToast('נמחק בהצלחה');
+    showToast('נמחק');
   }
 
   function updateStats() {
@@ -1296,16 +941,11 @@
     document.getElementById('loader').style.display = show ? 'flex' : 'none';
   }
 
-  function showToast(msg, type = 'success') {
+  function showToast(msg) {
     const toast = document.getElementById('toast');
-    const icon = toast.querySelector('i');
-    document.getElementById('toastMessage').textContent = msg;
-    
-    toast.className = 'toast ' + type;
-    icon.className = type === 'success' ? 'fa-solid fa-check-circle' : 'fa-solid fa-exclamation-circle';
-    
+    toast.textContent = msg;
     toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 3000);
+    setTimeout(() => toast.classList.remove('show'), 2500);
   }
 </script>
 
