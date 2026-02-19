@@ -5,10 +5,13 @@ CREATE TABLE IF NOT EXISTS bots (
     id SERIAL PRIMARY KEY,
     phone_number VARCHAR(20) NOT NULL UNIQUE,
     phone_number_id VARCHAR(50),
+    waba_id VARCHAR(50), -- WhatsApp Business Account ID
+    access_token TEXT, -- WhatsApp API Access Token
     name VARCHAR(100),
     workflow_id VARCHAR(100),
     workflow_name VARCHAR(255),
     n8n_webhook_url TEXT,
+    flow_id INTEGER, -- Reference to builder flow
     status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
     access_mode VARCHAR(30) DEFAULT 'everyone' CHECK (access_mode IN ('everyone', 'whitelist', 'dynamic')),
     dynamic_sql_template TEXT,

@@ -510,6 +510,8 @@
       transition: all 0.2s;
       z-index: 100;
     }
+    /* ReactFlow wraps node in .react-flow__node - use that for hover */
+    .react-flow__node:hover .node-hover-actions,
     .custom-node-wrapper:hover .node-hover-actions {
       opacity: 1;
       visibility: visible;
@@ -958,7 +960,14 @@
 
     function getDefaultNodeData(type) {
       switch(type) {
-        case 'trigger': return { triggerType: 'message', keyword: '' };
+        case 'trigger': return { 
+          bot_id: null, 
+          bot_phone: null,
+          access_mode: 'everyone', 
+          dynamic_sql_template: '',
+          active_until: null,
+          delay_seconds: 0
+        };
         case 'message': return { text: '', buttons: [] };
         case 'condition': return { conditions: [{ variable: '', operator: 'equals', value: '' }] };
         case 'delay': return { duration: 1, unit: 'seconds' };
@@ -1087,7 +1096,7 @@
     });
 
     // Editor Panel
-    function openEditor(node) {
+    async function openEditor(node) {
       selectedNodeId = node.id;
       
       const config = nodeTypeConfigs[node.type] || {};
@@ -1095,6 +1104,11 @@
       document.getElementById('editor-title').textContent = config.title || 'עריכת רכיב';
       document.getElementById('editor-icon').innerHTML = `<i class="fa-solid ${config.icon}"></i>`;
       document.getElementById('editor-icon').style.background = config.color;
+      
+      // Load bots for trigger editor
+      if (node.type === 'trigger') {
+        await loadAvailableBots();
+      }
       
       document.getElementById('editor-content').innerHTML = getEditorHTML(node.type, node.data);
       
@@ -1111,21 +1125,59 @@
       selectedNodeId = null;
     }
 
+    // Available bots cache
+    let availableBots = [];
+    
+    async function loadAvailableBots() {
+      try {
+        const res = await fetch(`/api/flows/available-bots?flow_id=${currentFlowId}`);
+        availableBots = await res.json();
+      } catch (err) {
+        console.error('Failed to load bots:', err);
+        availableBots = [];
+      }
+    }
+    
     function getEditorHTML(type, data) {
       switch(type) {
         case 'trigger':
+          const botOptions = availableBots.map(bot => {
+            const isSelected = data.bot_id == bot.id;
+            const name = bot.name || bot.phone_number;
+            return `<option value="${bot.id}" ${isSelected ? 'selected' : ''}>${name} (${bot.phone_number})</option>`;
+          }).join('');
+          
           return `
             <div class="form-group">
-              <label>סוג טריגר</label>
-              <select id="ed-triggerType">
-                <option value="message" ${data.triggerType === 'message' ? 'selected' : ''}>כל הודעה</option>
-                <option value="keyword" ${data.triggerType === 'keyword' ? 'selected' : ''}>מילת מפתח</option>
+              <label><i class="fa-brands fa-whatsapp" style="color: #25D366; margin-left: 6px;"></i> מספר WhatsApp</label>
+              <select id="ed-botId">
+                <option value="">בחר מספר...</option>
+                ${botOptions}
               </select>
+              <small>המספר שישמש לקבלת הודעות לתהליך זה</small>
             </div>
             <div class="form-group">
-              <label>מילת מפתח</label>
-              <input type="text" id="ed-keyword" value="${data.keyword || ''}" placeholder="לדוגמה: הגרלה">
-              <small>השאר ריק כדי להגיב לכל הודעה</small>
+              <label><i class="fa-solid fa-users" style="color: #6366f1; margin-left: 6px;"></i> מי יכול לשלוח הודעות</label>
+              <select id="ed-accessMode" onchange="toggleAccessModeFields()">
+                <option value="everyone" ${data.access_mode === 'everyone' ? 'selected' : ''}>כולם</option>
+                <option value="whitelist" ${data.access_mode === 'whitelist' ? 'selected' : ''}>רשימה לבנה בלבד</option>
+                <option value="dynamic" ${data.access_mode === 'dynamic' ? 'selected' : ''}>לפי שאילתת SQL</option>
+              </select>
+            </div>
+            <div class="form-group" id="sql-template-group" style="display: ${data.access_mode === 'dynamic' ? 'block' : 'none'};">
+              <label>שאילתת SQL</label>
+              <textarea id="ed-dynamicSql" placeholder="SELECT 1 FROM table WHERE phone = {{phone}}">${data.dynamic_sql_template || ''}</textarea>
+              <small>החזר שורה אחת אם המספר מורשה</small>
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-calendar" style="color: #f59e0b; margin-left: 6px;"></i> סיום הקמפיין</label>
+              <input type="datetime-local" id="ed-activeUntil" value="${data.active_until ? data.active_until.slice(0, 16) : ''}">
+              <small>השאר ריק אם אין תאריך סיום</small>
+            </div>
+            <div class="form-group">
+              <label><i class="fa-solid fa-clock" style="color: #8b5cf6; margin-left: 6px;"></i> השהיית תגובה (שניות)</label>
+              <input type="number" id="ed-delaySeconds" value="${data.delay_seconds || 0}" min="0" max="60">
+              <small>השהייה לפני תגובת הבוט</small>
             </div>
           `;
         case 'message':
@@ -1273,6 +1325,14 @@
       return Array.from(inputs).map(input => input.value).filter(v => v.trim());
     }
 
+    function toggleAccessModeFields() {
+      const mode = document.getElementById('ed-accessMode')?.value;
+      const sqlGroup = document.getElementById('sql-template-group');
+      if (sqlGroup) {
+        sqlGroup.style.display = mode === 'dynamic' ? 'block' : 'none';
+      }
+    }
+    
     function applyNodeChanges() {
       if (!selectedNodeId || !setNodesFunc) return;
       
@@ -1283,8 +1343,19 @@
       
       switch(node.type) {
         case 'trigger':
-          newData.triggerType = document.getElementById('ed-triggerType')?.value;
-          newData.keyword = document.getElementById('ed-keyword')?.value;
+          const botId = document.getElementById('ed-botId')?.value;
+          newData.bot_id = botId ? parseInt(botId) : null;
+          newData.access_mode = document.getElementById('ed-accessMode')?.value || 'everyone';
+          newData.dynamic_sql_template = document.getElementById('ed-dynamicSql')?.value || '';
+          newData.active_until = document.getElementById('ed-activeUntil')?.value || null;
+          newData.delay_seconds = parseInt(document.getElementById('ed-delaySeconds')?.value) || 0;
+          
+          // Update label to show bot phone
+          const selectedBot = availableBots.find(b => b.id == botId);
+          if (selectedBot) {
+            newData.bot_phone = selectedBot.phone_number;
+            newData.label = selectedBot.name || `טריגר - ${selectedBot.phone_number}`;
+          }
           break;
         case 'message':
           newData.text = document.getElementById('ed-text')?.value;
@@ -1325,6 +1396,129 @@
       if (!selectedNodeId) return;
       deleteNode(selectedNodeId);
     }
+    
+    // Helper to darken/lighten color
+    function adjustColor(color, amount) {
+      const hex = color.replace('#', '');
+      const r = Math.max(0, Math.min(255, parseInt(hex.slice(0, 2), 16) + amount));
+      const g = Math.max(0, Math.min(255, parseInt(hex.slice(2, 4), 16) + amount));
+      const b = Math.max(0, Math.min(255, parseInt(hex.slice(4, 6), 16) + amount));
+      return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    }
+    
+    function getNodeContent(type, data) {
+      switch(type) {
+        case 'trigger':
+          return data.bot_phone ? `מספר: ${data.bot_phone}` : 'לא מוגדר מספר';
+        case 'message':
+          return data.text ? (data.text.length > 35 ? data.text.substring(0, 35) + '...' : data.text) : 'הודעה ריקה';
+        case 'condition':
+          return data.conditions?.[0]?.variable || 'ללא תנאי מוגדר';
+        case 'delay':
+          const units = { seconds: 'שניות', minutes: 'דקות', hours: 'שעות' };
+          return `${data.duration || 1} ${units[data.unit] || 'שניות'}`;
+        case 'action':
+          const actions = { setVariable: 'הגדר משתנה', addTag: 'הוסף תג', removeTag: 'הסר תג' };
+          return actions[data.actionType] || data.actionType || 'פעולה';
+        case 'database':
+          const ops = { addParticipant: 'הוסף משתתף', addCard: 'הוסף כרטיס', query: 'שאילתת SQL' };
+          return ops[data.operation] || data.operation || 'פעולה';
+        default:
+          return '';
+      }
+    }
+    
+    // Custom Node Component - defined outside FlowCanvas to prevent re-creation
+    function CustomNodeComponent({ data, type, id, selected }) {
+      const config = nodeTypeConfigs[type] || {};
+      const content = getNodeContent(type, data);
+      const canDelete = config.canDelete !== false;
+      const canDuplicate = config.canDuplicate !== false;
+      const hasTarget = type !== 'trigger';
+      
+      const handleEdit = (e) => {
+        e.stopPropagation();
+        const node = nodesState.find(n => n.id === id);
+        if (node) openEditor(node);
+      };
+      
+      const handleDuplicate = (e) => {
+        e.stopPropagation();
+        if (!canDuplicate) return;
+        const node = nodesState.find(n => n.id === id);
+        if (node) duplicateNode(node);
+      };
+      
+      const handleDelete = (e) => {
+        e.stopPropagation();
+        if (!canDelete) return;
+        deleteNode(id);
+      };
+      
+      return React.createElement('div', { className: 'custom-node-wrapper' },
+        // Hover Actions Toolbar
+        React.createElement('div', { className: 'node-hover-actions' },
+          React.createElement('button', { 
+            className: 'node-action-btn edit',
+            onClick: handleEdit,
+            title: 'עריכה'
+          }, React.createElement('i', { className: 'fa-solid fa-pen' })),
+          React.createElement('button', { 
+            className: 'node-action-btn duplicate',
+            onClick: handleDuplicate,
+            disabled: !canDuplicate,
+            title: 'שכפול'
+          }, React.createElement('i', { className: 'fa-solid fa-copy' })),
+          React.createElement('button', { 
+            className: 'node-action-btn delete',
+            onClick: handleDelete,
+            disabled: !canDelete,
+            title: 'מחיקה'
+          }, React.createElement('i', { className: 'fa-solid fa-trash' }))
+        ),
+        
+        // Target Handle (left - input)
+        hasTarget && React.createElement(Handle, {
+          type: 'target',
+          position: Position.Left,
+          style: { background: config.color }
+        }),
+        
+        // Node Body
+        React.createElement('div', { className: `custom-node ${selected ? 'selected' : ''}` },
+          React.createElement('div', { 
+            className: 'node-header',
+            style: { background: `linear-gradient(135deg, ${config.color}, ${adjustColor(config.color, -20)})` }
+          },
+            React.createElement('div', { 
+              className: 'node-icon', 
+              style: { background: 'rgba(255,255,255,0.2)' } 
+            }, React.createElement('i', { className: `fa-solid ${config.icon}` })),
+            React.createElement('span', { className: 'node-title' }, data.label || config.title)
+          ),
+          content && React.createElement('div', { className: 'node-body' },
+            React.createElement('div', { className: 'node-content' }, content)
+          )
+        ),
+        
+        // Source Handle (right - output)
+        React.createElement(Handle, {
+          type: 'source',
+          position: Position.Right,
+          style: { background: config.color }
+        })
+      );
+    }
+    
+    // Node Types - defined outside FlowCanvas for stability
+    const nodeTypes = {
+      trigger: (props) => React.createElement(CustomNodeComponent, { ...props, type: 'trigger' }),
+      message: (props) => React.createElement(CustomNodeComponent, { ...props, type: 'message' }),
+      condition: (props) => React.createElement(CustomNodeComponent, { ...props, type: 'condition' }),
+      delay: (props) => React.createElement(CustomNodeComponent, { ...props, type: 'delay' }),
+      action: (props) => React.createElement(CustomNodeComponent, { ...props, type: 'action' }),
+      database: (props) => React.createElement(CustomNodeComponent, { ...props, type: 'database' })
+    };
 
     // ReactFlow Component
     function FlowCanvas() {
@@ -1367,11 +1561,6 @@
         openEditor(node);
       }, []);
 
-      const onNodeContextMenu = useCallback((event, node) => {
-        event.preventDefault();
-        showContextMenu(event, node);
-      }, []);
-
       const onInit = useCallback((instance) => {
         reactFlowInstance = instance;
       }, []);
@@ -1409,105 +1598,6 @@
         hideContextMenu();
       }, []);
 
-      const CustomNode = ({ data, type, id, selected }) => {
-        const config = nodeTypeConfigs[type] || {};
-        const content = getNodeContent(type, data);
-        const canDelete = config.canDelete !== false;
-        const canDuplicate = config.canDuplicate !== false;
-        const hasTarget = type !== 'trigger';
-        
-        const handleEdit = (e) => {
-          e.stopPropagation();
-          const node = nodesState.find(n => n.id === id);
-          if (node) openEditor(node);
-        };
-        
-        const handleDuplicate = (e) => {
-          e.stopPropagation();
-          if (!canDuplicate) return;
-          const node = nodesState.find(n => n.id === id);
-          if (node) duplicateNode(node);
-        };
-        
-        const handleDelete = (e) => {
-          e.stopPropagation();
-          if (!canDelete) return;
-          deleteNode(id);
-        };
-        
-        return React.createElement('div', { className: 'custom-node-wrapper' },
-          // Hover Actions Toolbar
-          React.createElement('div', { className: 'node-hover-actions' },
-            React.createElement('button', { 
-              className: 'node-action-btn edit',
-              onClick: handleEdit,
-              title: 'עריכה'
-            }, React.createElement('i', { className: 'fa-solid fa-pen' })),
-            React.createElement('button', { 
-              className: 'node-action-btn duplicate',
-              onClick: handleDuplicate,
-              disabled: !canDuplicate,
-              title: 'שכפול'
-            }, React.createElement('i', { className: 'fa-solid fa-copy' })),
-            React.createElement('button', { 
-              className: 'node-action-btn delete',
-              onClick: handleDelete,
-              disabled: !canDelete,
-              title: 'מחיקה'
-            }, React.createElement('i', { className: 'fa-solid fa-trash' }))
-          ),
-          
-          // Target Handle (left - input)
-          hasTarget && React.createElement(Handle, {
-            type: 'target',
-            position: Position.Left,
-            style: { background: config.color }
-          }),
-          
-          // Node Body
-          React.createElement('div', { className: `custom-node ${selected ? 'selected' : ''}` },
-            React.createElement('div', { 
-              className: 'node-header',
-              style: { background: `linear-gradient(135deg, ${config.color}, ${adjustColor(config.color, -20)})` }
-            },
-              React.createElement('div', { 
-                className: 'node-icon', 
-                style: { background: 'rgba(255,255,255,0.2)' } 
-              }, React.createElement('i', { className: `fa-solid ${config.icon}` })),
-              React.createElement('span', { className: 'node-title' }, data.label || config.title)
-            ),
-            content && React.createElement('div', { className: 'node-body' },
-              React.createElement('div', { className: 'node-content' }, content)
-            )
-          ),
-          
-          // Source Handle (right - output)
-          React.createElement(Handle, {
-            type: 'source',
-            position: Position.Right,
-            style: { background: config.color }
-          })
-        );
-      };
-      
-      // Helper to darken/lighten color
-      function adjustColor(color, amount) {
-        const hex = color.replace('#', '');
-        const r = Math.max(0, Math.min(255, parseInt(hex.slice(0, 2), 16) + amount));
-        const g = Math.max(0, Math.min(255, parseInt(hex.slice(2, 4), 16) + amount));
-        const b = Math.max(0, Math.min(255, parseInt(hex.slice(4, 6), 16) + amount));
-        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-      }
-
-      const nodeTypes = {
-        trigger: (props) => React.createElement(CustomNode, { ...props, type: 'trigger' }),
-        message: (props) => React.createElement(CustomNode, { ...props, type: 'message' }),
-        condition: (props) => React.createElement(CustomNode, { ...props, type: 'condition' }),
-        delay: (props) => React.createElement(CustomNode, { ...props, type: 'delay' }),
-        action: (props) => React.createElement(CustomNode, { ...props, type: 'action' }),
-        database: (props) => React.createElement(CustomNode, { ...props, type: 'database' })
-      };
-
       return React.createElement('div', { 
         ref: reactFlowWrapper, 
         style: { width: '100%', height: '100%' },
@@ -1521,7 +1611,6 @@
           onEdgesChange,
           onConnect,
           onNodeClick,
-          onNodeContextMenu,
           onInit,
           onPaneClick,
           nodeTypes,
@@ -1542,28 +1631,6 @@
           React.createElement(Background, { color: '#cbd5e1', gap: 20, size: 1.5 })
         )
       );
-    }
-
-    function getNodeContent(type, data) {
-      switch(type) {
-        case 'trigger':
-          return data.keyword ? `מילת מפתח: ${data.keyword}` : 'כל הודעה';
-        case 'message':
-          return data.text ? (data.text.length > 35 ? data.text.substring(0, 35) + '...' : data.text) : 'הודעה ריקה';
-        case 'condition':
-          return data.conditions?.[0]?.variable || 'ללא תנאי מוגדר';
-        case 'delay':
-          const units = { seconds: 'שניות', minutes: 'דקות', hours: 'שעות' };
-          return `${data.duration} ${units[data.unit] || data.unit}`;
-        case 'action':
-          const actions = { setVariable: 'הגדר משתנה', addTag: 'הוסף תג', removeTag: 'הסר תג' };
-          return actions[data.actionType] || data.actionType;
-        case 'database':
-          const ops = { addParticipant: 'הוסף משתתף', addCard: 'הוסף כרטיס', query: 'שאילתת SQL' };
-          return ops[data.operation] || data.operation;
-        default:
-          return '';
-      }
     }
 
     function renderReactFlow() {

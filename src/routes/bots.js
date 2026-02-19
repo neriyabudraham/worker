@@ -7,8 +7,8 @@ router.get('/', async (req, res, next) => {
     try {
         const result = await query(`
             SELECT 
-                id, phone_number, phone_number_id, name, workflow_id, workflow_name,
-                n8n_webhook_url, status, access_mode, dynamic_sql_template,
+                id, phone_number, phone_number_id, waba_id, name, workflow_id, workflow_name,
+                n8n_webhook_url, flow_id, status, access_mode, dynamic_sql_template,
                 to_char(active_from AT TIME ZONE 'Asia/Jerusalem', 'YYYY-MM-DD HH24:MI') as active_from,
                 to_char(active_until AT TIME ZONE 'Asia/Jerusalem', 'YYYY-MM-DD HH24:MI') as active_until,
                 delay_seconds, sort_order, created_at, updated_at
@@ -52,6 +52,8 @@ router.post('/', async (req, res, next) => {
         const {
             phone_number,
             phone_number_id,
+            waba_id,
+            access_token,
             name,
             workflow_id,
             n8n_webhook_url,
@@ -69,10 +71,10 @@ router.post('/', async (req, res, next) => {
 
         const result = await query(
             `INSERT INTO bots 
-             (phone_number, phone_number_id, name, workflow_id, n8n_webhook_url, status, access_mode, dynamic_sql_template, active_from, active_until, delay_seconds)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+             (phone_number, phone_number_id, waba_id, access_token, name, workflow_id, n8n_webhook_url, status, access_mode, dynamic_sql_template, active_from, active_until, delay_seconds)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
              RETURNING *`,
-            [phone_number, phone_number_id, name, workflow_id, n8n_webhook_url, status, access_mode, dynamic_sql_template, active_from, active_until, delay_seconds]
+            [phone_number, phone_number_id, waba_id, access_token, name, workflow_id, n8n_webhook_url, status, access_mode, dynamic_sql_template, active_from, active_until, delay_seconds]
         );
 
         res.status(201).json(result.rows[0]);
@@ -92,8 +94,8 @@ router.put('/:id', async (req, res, next) => {
         let paramIndex = 1;
 
         const allowedFields = [
-            'phone_number', 'phone_number_id', 'name', 'workflow_id', 'workflow_name', 'n8n_webhook_url',
-            'status', 'access_mode', 'dynamic_sql_template', 'active_from', 'active_until', 'delay_seconds', 'sort_order'
+            'phone_number', 'phone_number_id', 'waba_id', 'access_token', 'name', 'workflow_id', 'workflow_name', 'n8n_webhook_url',
+            'flow_id', 'status', 'access_mode', 'dynamic_sql_template', 'active_from', 'active_until', 'delay_seconds', 'sort_order'
         ];
 
         for (const field of allowedFields) {

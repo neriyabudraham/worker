@@ -17,6 +17,31 @@ router.get('/', async (req, res, next) => {
     }
 });
 
+// Get available bots (not assigned to a flow or assigned to specific flow)
+router.get('/available-bots', async (req, res, next) => {
+    try {
+        const flowId = req.query.flow_id;
+        let sql = `
+            SELECT id, phone_number, phone_number_id, waba_id, name, status,
+                   access_mode, active_from, active_until, delay_seconds, flow_id
+            FROM bots 
+            WHERE flow_id IS NULL`;
+        
+        const params = [];
+        if (flowId) {
+            sql += ` OR flow_id = $1`;
+            params.push(flowId);
+        }
+        
+        sql += ` ORDER BY name, phone_number`;
+        
+        const result = await query(sql, params);
+        res.json(result.rows);
+    } catch (error) {
+        next(error);
+    }
+});
+
 // Get single flow with nodes and edges
 router.get('/:id', async (req, res, next) => {
     try {
@@ -94,7 +119,14 @@ router.post('/', async (req, res, next) => {
         await query(
             `INSERT INTO flow_nodes (flow_id, node_id, type, subtype, label, position_x, position_y, config)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-            [newFlow.id, triggerId, 'trigger', 'trigger', 'טריגר התחלה', 250, 100, { triggerType: 'message', keyword: '' }]
+            [newFlow.id, triggerId, 'trigger', 'trigger', 'טריגר התחלה', 250, 100, { 
+                bot_id: null, 
+                bot_phone: null,
+                access_mode: 'everyone', 
+                dynamic_sql_template: '',
+                active_until: null,
+                delay_seconds: 0
+            }]
         );
 
         res.status(201).json({ ...newFlow, flow_type: newFlow.type });
@@ -159,14 +191,25 @@ async function saveCanvas(req, res, next) {
         const flowId = req.params.id;
 
         // Verify flow exists
-        const flowCheck = await query('SELECT id FROM flows WHERE id = $1', [flowId]);
+        const flowCheck = await query('SELECT id, bot_id FROM flows WHERE id = $1', [flowId]);
         if (flowCheck.rows.length === 0) {
             return res.status(404).json({ error: 'Flow not found' });
         }
 
+        const oldBotId = flowCheck.rows[0].bot_id;
+
         // Clear existing nodes and edges
         await query('DELETE FROM flow_nodes WHERE flow_id = $1', [flowId]);
         await query('DELETE FROM flow_edges WHERE flow_id = $1', [flowId]);
+
+        // Find trigger node to get bot settings
+        let triggerNode = null;
+        for (const node of nodes || []) {
+            if (node.type === 'trigger') {
+                triggerNode = node;
+                break;
+            }
+        }
 
         // Insert nodes
         for (const node of nodes || []) {
@@ -201,6 +244,51 @@ async function saveCanvas(req, res, next) {
                     edge.label || null
                 ]
             );
+        }
+
+        // Update bot linkage if trigger has bot_id
+        if (triggerNode && triggerNode.data?.bot_id) {
+            const newBotId = parseInt(triggerNode.data.bot_id);
+            
+            // Unlink old bot if different
+            if (oldBotId && oldBotId !== newBotId) {
+                await query('UPDATE bots SET flow_id = NULL WHERE id = $1', [oldBotId]);
+            }
+            
+            // Link new bot and update its settings from trigger
+            const botUpdateFields = ['flow_id = $1'];
+            const botUpdateValues = [flowId];
+            let paramIdx = 2;
+            
+            if (triggerNode.data.access_mode) {
+                botUpdateFields.push(`access_mode = $${paramIdx++}`);
+                botUpdateValues.push(triggerNode.data.access_mode);
+            }
+            if (triggerNode.data.active_until) {
+                botUpdateFields.push(`active_until = $${paramIdx++}`);
+                botUpdateValues.push(triggerNode.data.active_until);
+            }
+            if (triggerNode.data.active_from) {
+                botUpdateFields.push(`active_from = $${paramIdx++}`);
+                botUpdateValues.push(triggerNode.data.active_from);
+            }
+            if (typeof triggerNode.data.delay_seconds === 'number') {
+                botUpdateFields.push(`delay_seconds = $${paramIdx++}`);
+                botUpdateValues.push(triggerNode.data.delay_seconds);
+            }
+            
+            botUpdateValues.push(newBotId);
+            await query(
+                `UPDATE bots SET ${botUpdateFields.join(', ')} WHERE id = $${paramIdx}`,
+                botUpdateValues
+            );
+            
+            // Update flow bot_id
+            await query('UPDATE flows SET bot_id = $1 WHERE id = $2', [newBotId, flowId]);
+        } else if (oldBotId) {
+            // Unlink old bot if trigger has no bot_id
+            await query('UPDATE bots SET flow_id = NULL WHERE id = $1', [oldBotId]);
+            await query('UPDATE flows SET bot_id = NULL WHERE id = $1', [flowId]);
         }
 
         res.json({ success: true, nodes: nodes?.length || 0, edges: edges?.length || 0 });
