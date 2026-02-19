@@ -1143,7 +1143,7 @@
     
     async function loadAvailableBots() {
       try {
-        const res = await fetch(`/api/flows/available-bots?flow_id=${currentFlowId}`);
+        const res = await fetch(`/api/flows/available-bots?flow_id=${flowId}`);
         availableBots = await res.json();
       } catch (err) {
         console.error('Failed to load bots:', err);
