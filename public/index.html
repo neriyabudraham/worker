@@ -184,22 +184,26 @@
       font-family: inherit;
       cursor: pointer;
       background: white;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .search-select-dropdown {
       position: absolute;
-      top: 100%;
       right: 0;
       left: 0;
       background: white;
       border: 1px solid #ced4da;
       border-radius: 6px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-      z-index: 100;
-      max-height: 250px;
+      z-index: 1000;
+      max-height: 280px;
       overflow-y: auto;
       display: none;
     }
     .search-select-dropdown.open { display: block; }
+    .search-select-dropdown.open-up { bottom: 100%; margin-bottom: 5px; }
+    .search-select-dropdown.open-down { top: 100%; margin-top: 5px; }
     .search-select-search {
       width: 100%;
       padding: 10px 12px;
@@ -207,6 +211,9 @@
       border-bottom: 1px solid #eee;
       outline: none;
       font-family: inherit;
+      position: sticky;
+      top: 0;
+      background: white;
     }
     .search-select-option {
       padding: 10px 12px;
@@ -326,13 +333,21 @@
       <input type="number" id="setDelay" placeholder="0" min="0" style="width:100px;">
     </div>
 
-    <div id="dynamicQuerySection" class="hidden">
+    <div id="dynamicQuerySection" class="hidden" style="margin-bottom:25px;">
       <h4 style="margin:0 0 10px 0; color:var(--text-muted); font-size:0.9rem;"><i class="fa-solid fa-database"></i> שאילתא דינאמית (SQL)</h4>
       <div class="sql-editor-container">
-        <span class="sql-badge">SQL Editor</span>
-        <textarea id="setQuery" class="sql-editor" rows="6" placeholder="SELECT * FROM users WHERE phone = {{phone}}"></textarea>
+        <span class="sql-badge">SQL</span>
+        <textarea id="setQuery" class="sql-editor" rows="5" placeholder="SELECT 1 FROM users WHERE phone LIKE '%' || '{{phone}}'"></textarea>
       </div>
-      <p style="font-size:0.8rem; color:#666; margin-top:5px;">💡 השתמש ב-<code>{{phone}}</code> למספר הלקוח.</p>
+      <div style="background:#f8fafc; padding:12px; border-radius:8px; margin-top:10px; font-size:0.85rem; color:#475569;">
+        <p style="margin:0 0 8px 0;"><strong>💡 הסבר:</strong></p>
+        <ul style="margin:0; padding-right:20px; line-height:1.8;">
+          <li>השאילתה רצה על הדאטאבייס שלנו (PostgreSQL)</li>
+          <li>השתמש ב-<code style="background:#e2e8f0; padding:2px 6px; border-radius:4px;">{{phone}}</code> למספר הלקוח</li>
+          <li>אם השאילתה מחזירה שורות - הגישה מאושרת</li>
+          <li>אם לא - הגישה נחסמת</li>
+        </ul>
+      </div>
     </div>
 
     <div style="text-align:left; margin-top:30px;">
@@ -503,12 +518,36 @@
   // Searchable Workflow Dropdown
   function toggleWorkflowDropdown(el) {
     const dropdown = el.nextElementSibling;
+    
+    // Close other dropdowns
     document.querySelectorAll('.search-select-dropdown.open').forEach(d => {
-      if (d !== dropdown) d.classList.remove('open');
+      if (d !== dropdown) {
+        d.classList.remove('open', 'open-up', 'open-down');
+      }
     });
-    dropdown.classList.toggle('open');
-    if (dropdown.classList.contains('open')) {
+    
+    const isOpen = dropdown.classList.contains('open');
+    
+    if (isOpen) {
+      dropdown.classList.remove('open', 'open-up', 'open-down');
+    } else {
+      // Calculate position - open up or down based on viewport space
+      const rect = el.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      
+      dropdown.classList.remove('open-up', 'open-down');
+      
+      if (spaceBelow < 300 && spaceAbove > spaceBelow) {
+        dropdown.classList.add('open', 'open-up');
+      } else {
+        dropdown.classList.add('open', 'open-down');
+      }
+      
       dropdown.querySelector('.search-select-search').focus();
+      dropdown.querySelector('.search-select-search').value = '';
+      // Reset filter
+      dropdown.querySelectorAll('.search-select-option').forEach(opt => opt.style.display = '');
     }
   }
 
