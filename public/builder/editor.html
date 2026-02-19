@@ -180,7 +180,8 @@
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
-      overflow: hidden;
+      overflow: visible;
+      z-index: 50;
     }
     
     .panel-header {
@@ -235,7 +236,14 @@
     .panel-content {
       padding: 1rem 1.5rem;
       overflow-y: auto;
+      overflow-x: visible;
       flex: 1;
+      position: relative;
+    }
+    
+    .panel-content select {
+      position: relative;
+      z-index: 10;
     }
     
     /* Node Palette */
@@ -311,10 +319,15 @@
       transition: all 0.2s;
       background: #fafafa;
     }
+    .form-group select {
+      cursor: pointer;
+      position: relative;
+      z-index: 100;
+    }
     .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
       outline: none;
       border-color: #6366f1;
-      background: white;
+      background-color: white;
       box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
     }
     .form-group textarea {
