@@ -97,9 +97,14 @@ router.put('/:id', async (req, res, next) => {
         ];
 
         for (const field of allowedFields) {
-            if (req.body[field] !== undefined) {
+            if (field in req.body) {
                 fields.push(`${field} = $${paramIndex}`);
-                values.push(req.body[field]);
+                // Handle empty strings as null for certain fields
+                let value = req.body[field];
+                if (['workflow_id', 'workflow_name', 'active_from', 'active_until', 'dynamic_sql_template'].includes(field)) {
+                    if (value === '' || value === undefined) value = null;
+                }
+                values.push(value);
                 paramIndex++;
             }
         }

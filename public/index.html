@@ -532,7 +532,31 @@
     option.classList.add('selected');
 
     const wf = workflows.find(w => w.id === value);
-    await updateBot(botId, 'workflow_id', value || null, wf?.name || null);
+    const workflowId = value && value.trim() !== '' ? value : null;
+    const workflowName = wf?.name || null;
+    
+    // Update both fields at once
+    const bot = bots.find(b => b.id === botId);
+    const data = { workflow_id: workflowId, workflow_name: workflowName };
+
+    try {
+      const res = await fetch(`${API}/api/bots/${botId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'שגיאה בשמירה');
+      }
+
+      Object.assign(bot, data);
+      showToast('השינויים נשמרו');
+    } catch (e) {
+      console.error('Update error:', e);
+      showToast('שגיאה: ' + e.message);
+    }
   }
 
   // Close dropdowns on outside click
