@@ -431,60 +431,130 @@
     
     /* ReactFlow Custom Styles */
     .react-flow__node {
-      border-radius: 16px !important;
       font-family: 'Heebo', sans-serif !important;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
-      border: 2px solid transparent !important;
-      min-width: 200px;
     }
-    .react-flow__node.selected {
-      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.25) !important;
-      border-color: #6366f1 !important;
+    
+    .custom-node-wrapper {
+      position: relative;
+      min-width: 220px;
+      max-width: 300px;
     }
     
     .custom-node {
-      padding: 14px 18px;
       background: white;
-      border-radius: 14px;
+      border-radius: 16px;
+      border: 2px solid #e2e8f0;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      overflow: hidden;
+      transition: all 0.2s;
+    }
+    .custom-node:hover {
+      border-color: #cbd5e1;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    }
+    .custom-node.selected {
+      border-color: #6366f1;
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.25);
     }
     
     .node-header {
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 8px;
+      gap: 12px;
+      padding: 12px 16px;
     }
     .node-icon {
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       border-radius: 10px;
       display: flex;
       align-items: center;
       justify-content: center;
       color: white;
-      font-size: 0.875rem;
+      font-size: 1rem;
       box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      flex-shrink: 0;
     }
     .node-title {
-      font-weight: 600;
-      font-size: 0.925rem;
-      color: #1e293b;
-    }
-    .node-content {
-      font-size: 0.8rem;
-      color: #64748b;
-      max-width: 180px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      padding-right: 42px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: white;
     }
     
+    .node-body {
+      padding: 12px 16px;
+      border-top: 1px solid #f1f5f9;
+    }
+    .node-content {
+      font-size: 0.85rem;
+      color: #64748b;
+      line-height: 1.5;
+    }
+    
+    /* Hover Actions Toolbar */
+    .node-hover-actions {
+      position: absolute;
+      top: -44px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      border: 1px solid #e2e8f0;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s;
+      z-index: 100;
+    }
+    .custom-node-wrapper:hover .node-hover-actions {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .node-action-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-size: 0.875rem;
+    }
+    .node-action-btn.edit { color: #3b82f6; }
+    .node-action-btn.edit:hover { background: #eff6ff; }
+    .node-action-btn.duplicate { color: #22c55e; }
+    .node-action-btn.duplicate:hover { background: #f0fdf4; }
+    .node-action-btn.delete { color: #ef4444; }
+    .node-action-btn.delete:hover { background: #fef2f2; }
+    .node-action-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    
+    /* Handles */
     .react-flow__handle {
       width: 14px !important;
       height: 14px !important;
       border: 3px solid white !important;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
+      transition: all 0.15s !important;
+    }
+    .react-flow__handle:hover {
+      transform: scale(1.2);
+    }
+    .react-flow__handle-left {
+      left: -7px !important;
+    }
+    .react-flow__handle-right {
+      right: -7px !important;
     }
     
     .react-flow__controls {
@@ -669,6 +739,8 @@
     const ReactFlow = window.ReactFlow.default || window.ReactFlow.ReactFlow || window.ReactFlow;
     const Controls = window.ReactFlow.Controls;
     const Background = window.ReactFlow.Background;
+    const Handle = window.ReactFlow.Handle;
+    const Position = window.ReactFlow.Position;
     const addEdge = window.ReactFlow.addEdge;
     const applyRFNodeChanges = window.ReactFlow.applyNodeChanges;
     const applyEdgeChanges = window.ReactFlow.applyEdgeChanges;
@@ -1057,6 +1129,7 @@
             </div>
           `;
         case 'message':
+          const buttons = data.buttons || [];
           return `
             <div class="form-group">
               <label>תוכן ההודעה</label>
@@ -1064,8 +1137,25 @@
               <small>ניתן להשתמש במשתנים: {{name}}, {{phone}}</small>
             </div>
             <div class="form-group">
-              <label>כפתורים (שורה לכל כפתור)</label>
-              <textarea id="ed-buttons" rows="3" placeholder="כפתור 1&#10;כפתור 2&#10;כפתור 3">${(data.buttons || []).join('\n')}</textarea>
+              <label>כפתורים</label>
+              <div id="buttons-container" style="display: flex; flex-direction: column; gap: 8px;">
+                ${buttons.map((btn, i) => `
+                  <div class="button-item" style="display: flex; gap: 8px; align-items: center;">
+                    <input type="text" class="button-input" value="${btn}" placeholder="טקסט הכפתור" 
+                      style="flex: 1; padding: 10px 14px; border: 2px solid #e5e7eb; border-radius: 10px; font-family: inherit;">
+                    <button type="button" onclick="removeButton(${i})" 
+                      style="width: 36px; height: 36px; border: none; background: #fef2f2; color: #ef4444; border-radius: 8px; cursor: pointer;">
+                      <i class="fa-solid fa-times"></i>
+                    </button>
+                  </div>
+                `).join('')}
+              </div>
+              <button type="button" onclick="addButton()" 
+                style="margin-top: 12px; width: 100%; padding: 12px; background: #f0fdf4; color: #16a34a; border: 2px dashed #86efac; border-radius: 12px; cursor: pointer; font-family: inherit; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <i class="fa-solid fa-plus"></i>
+                הוסף כפתור
+              </button>
+              <small style="margin-top: 8px; display: block;">עד 3 כפתורים בהודעה</small>
             </div>
           `;
         case 'condition':
@@ -1144,6 +1234,45 @@
       }
     }
 
+    // Button management for message editor
+    function addButton() {
+      const container = document.getElementById('buttons-container');
+      const buttonItems = container.querySelectorAll('.button-item');
+      if (buttonItems.length >= 3) {
+        showToast('מקסימום 3 כפתורים');
+        return;
+      }
+      
+      const index = buttonItems.length;
+      const div = document.createElement('div');
+      div.className = 'button-item';
+      div.style.cssText = 'display: flex; gap: 8px; align-items: center;';
+      div.innerHTML = `
+        <input type="text" class="button-input" value="" placeholder="טקסט הכפתור" 
+          style="flex: 1; padding: 10px 14px; border: 2px solid #e5e7eb; border-radius: 10px; font-family: inherit;">
+        <button type="button" onclick="removeButton(${index})" 
+          style="width: 36px; height: 36px; border: none; background: #fef2f2; color: #ef4444; border-radius: 8px; cursor: pointer;">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      `;
+      container.appendChild(div);
+    }
+    
+    function removeButton(index) {
+      const container = document.getElementById('buttons-container');
+      const items = container.querySelectorAll('.button-item');
+      if (items[index]) {
+        items[index].remove();
+      }
+    }
+    
+    function getButtonsFromEditor() {
+      const container = document.getElementById('buttons-container');
+      if (!container) return [];
+      const inputs = container.querySelectorAll('.button-input');
+      return Array.from(inputs).map(input => input.value).filter(v => v.trim());
+    }
+
     function applyNodeChanges() {
       if (!selectedNodeId || !setNodesFunc) return;
       
@@ -1159,8 +1288,7 @@
           break;
         case 'message':
           newData.text = document.getElementById('ed-text')?.value;
-          const buttonsText = document.getElementById('ed-buttons')?.value || '';
-          newData.buttons = buttonsText.split('\n').filter(b => b.trim());
+          newData.buttons = getButtonsFromEditor();
           break;
         case 'condition':
           newData.conditions = [{
@@ -1281,21 +1409,95 @@
         hideContextMenu();
       }, []);
 
-      const CustomNode = ({ data, type }) => {
+      const CustomNode = ({ data, type, id, selected }) => {
         const config = nodeTypeConfigs[type] || {};
         const content = getNodeContent(type, data);
+        const canDelete = config.canDelete !== false;
+        const canDuplicate = config.canDuplicate !== false;
+        const hasTarget = type !== 'trigger';
         
-        return React.createElement('div', { className: 'custom-node' },
-          React.createElement('div', { className: 'node-header' },
-            React.createElement('div', { 
-              className: 'node-icon', 
-              style: { background: config.color } 
-            }, React.createElement('i', { className: `fa-solid ${config.icon}` })),
-            React.createElement('span', { className: 'node-title' }, data.label || config.title)
+        const handleEdit = (e) => {
+          e.stopPropagation();
+          const node = nodesState.find(n => n.id === id);
+          if (node) openEditor(node);
+        };
+        
+        const handleDuplicate = (e) => {
+          e.stopPropagation();
+          if (!canDuplicate) return;
+          const node = nodesState.find(n => n.id === id);
+          if (node) duplicateNode(node);
+        };
+        
+        const handleDelete = (e) => {
+          e.stopPropagation();
+          if (!canDelete) return;
+          deleteNode(id);
+        };
+        
+        return React.createElement('div', { className: 'custom-node-wrapper' },
+          // Hover Actions Toolbar
+          React.createElement('div', { className: 'node-hover-actions' },
+            React.createElement('button', { 
+              className: 'node-action-btn edit',
+              onClick: handleEdit,
+              title: 'עריכה'
+            }, React.createElement('i', { className: 'fa-solid fa-pen' })),
+            React.createElement('button', { 
+              className: 'node-action-btn duplicate',
+              onClick: handleDuplicate,
+              disabled: !canDuplicate,
+              title: 'שכפול'
+            }, React.createElement('i', { className: 'fa-solid fa-copy' })),
+            React.createElement('button', { 
+              className: 'node-action-btn delete',
+              onClick: handleDelete,
+              disabled: !canDelete,
+              title: 'מחיקה'
+            }, React.createElement('i', { className: 'fa-solid fa-trash' }))
           ),
-          content && React.createElement('div', { className: 'node-content' }, content)
+          
+          // Target Handle (left - input)
+          hasTarget && React.createElement(Handle, {
+            type: 'target',
+            position: Position.Left,
+            style: { background: config.color }
+          }),
+          
+          // Node Body
+          React.createElement('div', { className: `custom-node ${selected ? 'selected' : ''}` },
+            React.createElement('div', { 
+              className: 'node-header',
+              style: { background: `linear-gradient(135deg, ${config.color}, ${adjustColor(config.color, -20)})` }
+            },
+              React.createElement('div', { 
+                className: 'node-icon', 
+                style: { background: 'rgba(255,255,255,0.2)' } 
+              }, React.createElement('i', { className: `fa-solid ${config.icon}` })),
+              React.createElement('span', { className: 'node-title' }, data.label || config.title)
+            ),
+            content && React.createElement('div', { className: 'node-body' },
+              React.createElement('div', { className: 'node-content' }, content)
+            )
+          ),
+          
+          // Source Handle (right - output)
+          React.createElement(Handle, {
+            type: 'source',
+            position: Position.Right,
+            style: { background: config.color }
+          })
         );
       };
+      
+      // Helper to darken/lighten color
+      function adjustColor(color, amount) {
+        const hex = color.replace('#', '');
+        const r = Math.max(0, Math.min(255, parseInt(hex.slice(0, 2), 16) + amount));
+        const g = Math.max(0, Math.min(255, parseInt(hex.slice(2, 4), 16) + amount));
+        const b = Math.max(0, Math.min(255, parseInt(hex.slice(4, 6), 16) + amount));
+        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+      }
 
       const nodeTypes = {
         trigger: (props) => React.createElement(CustomNode, { ...props, type: 'trigger' }),
