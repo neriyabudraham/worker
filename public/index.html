@@ -309,6 +309,12 @@
     <input type="hidden" id="editBotId">
 
     <div style="margin-bottom:25px;">
+      <h4 style="margin:0 0 10px 0; color:var(--text-muted); font-size:0.9rem;"><i class="fa-solid fa-link"></i> Webhook URL (אופציונלי)</h4>
+      <input type="url" id="setWebhookUrl" placeholder="https://n8n.../webhook/..." style="width:100%; direction:ltr;">
+      <p style="font-size:0.8rem; color:#666; margin-top:5px;">💡 אם ריק - ישתמש ב-workflow שנבחר בטבלה</p>
+    </div>
+
+    <div style="margin-bottom:25px;">
       <h4 style="margin:0 0 10px 0; color:var(--text-muted); font-size:0.9rem;"><i class="fa-regular fa-calendar-days"></i> תזמון פעילות</h4>
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
         <div>
@@ -715,6 +721,7 @@
     const bot = bots.find(b => b.id === id);
     document.getElementById('editBotId').value = id;
 
+    document.getElementById('setWebhookUrl').value = bot.n8n_webhook_url || '';
     fpFrom.setDate(bot.active_from || null);
     fpUntil.setDate(bot.active_until || null);
     document.getElementById('setDelay').value = bot.delay_seconds || 0;
@@ -729,12 +736,14 @@
 
   async function saveSettings() {
     const id = document.getElementById('editBotId').value;
+    const webhookUrlVal = document.getElementById('setWebhookUrl').value.trim() || null;
     const fromVal = document.getElementById('setFrom').value || null;
     const untilVal = document.getElementById('setUntil').value || null;
     const delayVal = parseInt(document.getElementById('setDelay').value) || 0;
     const queryVal = document.getElementById('setQuery').value || null;
 
     const data = {
+      n8n_webhook_url: webhookUrlVal,
       active_from: fromVal,
       active_until: untilVal,
       delay_seconds: delayVal,

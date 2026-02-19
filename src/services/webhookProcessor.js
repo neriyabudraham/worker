@@ -232,7 +232,7 @@ class WebhookProcessor {
     }
 
     async triggerWorkflow(result, originalPayload) {
-        console.log('[TRIGGER] Starting workflow trigger, action:', result.action);
+        console.log('[TRIGGER] Starting workflow trigger');
         
         if (result.action !== 'approve') {
             console.log('[TRIGGER] Not approved, skipping');
@@ -245,18 +245,18 @@ class WebhookProcessor {
             await this.sleep(result.delay * 1000);
         }
 
+        const webhookUrl = result.webhookUrl;
+        const workflowId = result.workflowId;
+
         // Update message as processed
         if (result.messageData?.messageId) {
             await query(
                 `UPDATE livechat SET processed = true, workflow_triggered = $1 WHERE message_id = $2`,
-                [result.workflowId || result.webhookUrl, result.messageData.messageId]
+                [webhookUrl || workflowId, result.messageData.messageId]
             );
         }
 
-        const workflowId = result.workflowId;
-        const webhookUrl = result.webhookUrl;
-
-        // Prepare the data to send
+        // Prepare the data to send (same format as your n8n workflow)
         const dataToSend = {
             body: originalPayload,
             PhoneBOT: result.messageData?.phoneBot,
@@ -265,64 +265,27 @@ class WebhookProcessor {
             messageID: result.messageData?.messageId
         };
 
-        // Method 1: If there's a direct webhook URL, use it
+        // Priority 1: Direct webhook URL (if configured)
         if (webhookUrl) {
-            console.log('[TRIGGER] Using direct webhook URL:', webhookUrl);
+            console.log('[TRIGGER] Using webhook URL:', webhookUrl);
             try {
                 const response = await axios.post(webhookUrl, dataToSend, {
                     timeout: 30000,
                     headers: { 'Content-Type': 'application/json' }
                 });
-                console.log('[TRIGGER] SUCCESS! Response:', response.status);
+                console.log('[TRIGGER] SUCCESS! Status:', response.status);
                 return;
             } catch (error) {
-                console.error('[TRIGGER] Webhook failed:', error.message);
+                console.error('[TRIGGER] FAILED:', error.message);
+                return;
             }
         }
 
-        // Method 2: Execute workflow via n8n API
-        if (workflowId) {
-            console.log('[TRIGGER] Executing workflow via API:', workflowId);
-            try {
-                const response = await axios.post(
-                    `${N8N_BASE_URL}/api/v1/executions`,
-                    {
-                        workflowId: workflowId,
-                        data: dataToSend
-                    },
-                    {
-                        timeout: 30000,
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-N8N-API-KEY': process.env.N8N_API_KEY
-                        }
-                    }
-                );
-                console.log('[TRIGGER] SUCCESS! Execution ID:', response.data?.id || response.status);
-                return;
-            } catch (error) {
-                console.error('[TRIGGER] API execution failed:', error.message);
-                
-                // Method 3: Try webhook path as fallback
-                console.log('[TRIGGER] Trying webhook fallback...');
-                try {
-                    const webhookResponse = await axios.post(
-                        `${N8N_BASE_URL}/webhook/${workflowId}`,
-                        dataToSend,
-                        {
-                            timeout: 30000,
-                            headers: { 'Content-Type': 'application/json' }
-                        }
-                    );
-                    console.log('[TRIGGER] Webhook fallback SUCCESS:', webhookResponse.status);
-                } catch (webhookError) {
-                    console.error('[TRIGGER] Webhook fallback also failed:', webhookError.message);
-                }
-            }
-        }
-
-        if (!webhookUrl && !workflowId) {
-            console.log('[TRIGGER] No webhook URL or workflow ID configured!');
+        // Priority 2: No webhook URL configured
+        if (!webhookUrl) {
+            console.log('[TRIGGER] No webhook URL configured for this bot!');
+            console.log('[TRIGGER] Workflow ID:', workflowId || 'none');
+            console.log('[TRIGGER] Please set a webhook URL in bot settings');
         }
     }
 

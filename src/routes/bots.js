@@ -101,7 +101,7 @@ router.put('/:id', async (req, res, next) => {
                 fields.push(`${field} = $${paramIndex}`);
                 // Handle empty strings as null for certain fields
                 let value = req.body[field];
-                if (['workflow_id', 'workflow_name', 'active_from', 'active_until', 'dynamic_sql_template'].includes(field)) {
+                if (['workflow_id', 'workflow_name', 'n8n_webhook_url', 'active_from', 'active_until', 'dynamic_sql_template'].includes(field)) {
                     if (value === '' || value === undefined) value = null;
                 }
                 values.push(value);
