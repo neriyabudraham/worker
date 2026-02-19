@@ -5,24 +5,16 @@ services:
     build: .
     container_name: bot-router
     restart: unless-stopped
-    ports:
-      - "3380:3380"
+    network_mode: host
     environment:
       - NODE_ENV=production
       - PORT=3380
-      - DB_HOST=host.docker.internal
+      - DB_HOST=localhost
       - DB_PORT=5432
       - DB_NAME=bot_router
       - DB_USER=${DB_USER:-postgres}
       - DB_PASSWORD=${DB_PASSWORD:-changeme}
       - MASTER_PHONE=${MASTER_PHONE:-972584254229}
       - N8N_BASE_URL=${N8N_BASE_URL:-https://n8n2.neriyabudraham.co.il}
+      - N8N_API_KEY=${N8N_API_KEY}
       - WEBHOOK_VERIFY_TOKEN=${WEBHOOK_VERIFY_TOKEN:-your_verify_token}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    networks:
-      - bot-network
-
-networks:
-  bot-network:
-    driver: bridge
