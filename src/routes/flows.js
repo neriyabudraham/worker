@@ -25,12 +25,16 @@ router.get('/available-bots', async (req, res, next) => {
             SELECT id, phone_number, phone_number_id, waba_id, name, status,
                    access_mode, active_from, active_until, delay_seconds, flow_id
             FROM bots 
-            WHERE flow_id IS NULL`;
+            WHERE phone_number_id IS NOT NULL 
+              AND access_token IS NOT NULL
+              AND (flow_id IS NULL`;
         
         const params = [];
         if (flowId) {
-            sql += ` OR flow_id = $1`;
+            sql += ` OR flow_id = $1)`;
             params.push(flowId);
+        } else {
+            sql += `)`;
         }
         
         sql += ` ORDER BY name, phone_number`;
