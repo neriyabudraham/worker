@@ -17,8 +17,27 @@ class N8nApiService {
 
     async getWorkflows(filters = {}) {
         try {
-            const response = await this.client.get('/api/v1/workflows');
-            let workflows = response.data.data || response.data || [];
+            let allWorkflows = [];
+            let cursor = null;
+            let hasMore = true;
+
+            // Fetch all workflows with pagination
+            while (hasMore) {
+                const params = { limit: 250 };
+                if (cursor) params.cursor = cursor;
+
+                const response = await this.client.get('/api/v1/workflows', { params });
+                const data = response.data;
+                
+                const workflows = data.data || data || [];
+                allWorkflows = allWorkflows.concat(workflows);
+
+                // Check if there are more pages
+                cursor = data.nextCursor;
+                hasMore = !!cursor && workflows.length > 0;
+            }
+
+            let workflows = allWorkflows;
             
             // Apply filters if provided
             if (filters.nameContains) {
@@ -38,6 +57,16 @@ class N8nApiService {
             if (filters.active !== undefined) {
                 workflows = workflows.filter(w => w.active === filters.active);
             }
+
+            // Sort: "הגרלה" first, then alphabetically
+            workflows.sort((a, b) => {
+                const aIsHagrala = a.name && a.name.startsWith('הגרלה');
+                const bIsHagrala = b.name && b.name.startsWith('הגרלה');
+                
+                if (aIsHagrala && !bIsHagrala) return -1;
+                if (!aIsHagrala && bIsHagrala) return 1;
+                return (a.name || '').localeCompare(b.name || '', 'he');
+            });
 
             return workflows.map(w => ({
                 id: w.id,

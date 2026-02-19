@@ -9,14 +9,16 @@ const N8N_BASE_URL = process.env.N8N_BASE_URL || 'https://n8n2.neriyabudraham.co
 // Get all workflows from n8n
 router.get('/workflows', async (req, res, next) => {
     try {
-        const { nameContains, active } = req.query;
+        const { nameContains, active, noExclusions } = req.query;
         const filters = {};
         
         if (nameContains) filters.nameContains = nameContains;
         if (active !== undefined) filters.active = active === 'true';
         
-        // Default exclusions (like in your n8n workflow)
-        filters.nameNotContains = ['ממשק', 'סיום', 'עדכוני', 'שליחת', 'למשיכת', 'טיוטה'];
+        // Default exclusions - skip if noExclusions=true
+        if (noExclusions !== 'true') {
+            filters.nameNotContains = ['ממשק', 'סיום', 'עדכוני', 'שליחת', 'למשיכת', 'טיוטה'];
+        }
         
         const workflows = await n8nApi.getWorkflows(filters);
         res.json(workflows);

@@ -397,7 +397,7 @@
     try {
       const [botsRes, workflowsRes, blockedRes] = await Promise.all([
         fetch(`${API}/api/bots`),
-        fetch(`${API}/api/n8n/workflows`),
+        fetch(`${API}/api/n8n/workflows?noExclusions=true`),
         fetch(`${API}/api/blocked`)
       ]);
 
@@ -476,9 +476,11 @@
         </td>
         <td data-label="פעולות">
           <div style="display:flex; gap:5px; justify-content: flex-end;">
-            <button class="btn-icon" style="${bot.access_mode === 'whitelist' ? '' : 'opacity:0.3; pointer-events:none;'}"
-                onclick="openWhitelist(${bot.id}, '${bot.phone_number}')"><i class="fa-solid fa-users"></i></button>
-            <button class="btn-icon" onclick="openSettings(${bot.id})"><i class="fa-solid fa-gear"></i></button>
+            ${bot.access_mode === 'whitelist' ? `
+              <button class="btn-icon" style="background:#dcfce7; color:#15803d;" title="ערוך רשימה לבנה"
+                  onclick="openWhitelist(${bot.id}, '${bot.phone_number}')"><i class="fa-solid fa-users"></i></button>
+            ` : ''}
+            <button class="btn-icon" onclick="openSettings(${bot.id})" title="הגדרות"><i class="fa-solid fa-gear"></i></button>
           </div>
         </td>
         <td style="text-align:center" data-label="מחיקה">
