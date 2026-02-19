@@ -469,15 +469,23 @@
     </div>
   </div>
 
-  <!-- ReactFlow -->
+  <!-- ReactFlow (using older reactflow package with UMD support) -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@xyflow/react@12/dist/umd/index.js"></script>
-  <link href="https://unpkg.com/@xyflow/react@12/dist/style.css" rel="stylesheet">
+  <script src="https://unpkg.com/reactflow@11.11.4/dist/umd/index.js"></script>
+  <link href="https://unpkg.com/reactflow@11.11.4/dist/style.css" rel="stylesheet">
   
   <script>
     const { useState, useCallback, useRef, useEffect } = React;
-    const { ReactFlow, Controls, Background, addEdge, applyNodeChanges: applyRFNodeChanges, applyEdgeChanges, MarkerType } = window.xyflowReact;
+    
+    // ReactFlow UMD
+    const ReactFlow = window.ReactFlow.default || window.ReactFlow.ReactFlow || window.ReactFlow;
+    const Controls = window.ReactFlow.Controls;
+    const Background = window.ReactFlow.Background;
+    const addEdge = window.ReactFlow.addEdge;
+    const applyRFNodeChanges = window.ReactFlow.applyNodeChanges;
+    const applyEdgeChanges = window.ReactFlow.applyEdgeChanges;
+    const MarkerType = window.ReactFlow.MarkerType;
 
     let flowId = null;
     let flowData = null;
