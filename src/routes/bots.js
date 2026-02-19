@@ -84,8 +84,8 @@ router.put('/:id', async (req, res, next) => {
         let paramIndex = 1;
 
         const allowedFields = [
-            'phone_number', 'phone_number_id', 'name', 'workflow_id', 'n8n_webhook_url',
-            'status', 'access_mode', 'dynamic_sql_template', 'active_from', 'active_until', 'delay_seconds'
+            'phone_number', 'phone_number_id', 'name', 'workflow_id', 'workflow_name', 'n8n_webhook_url',
+            'status', 'access_mode', 'dynamic_sql_template', 'active_from', 'active_until', 'delay_seconds', 'sort_order'
         ];
 
         for (const field of allowedFields) {
