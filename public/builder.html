@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Builder - בניית תהליכים</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-node: #0f3460;
+            --accent: #e94560;
+            --accent-hover: #ff6b6b;
+            --text-primary: #eee;
+            --text-secondary: #aaa;
+            --border: #2d3a5a;
+            --success: #2ed573;
+            --warning: #ffa502;
+            --info: #1e90ff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-secondary);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            border-bottom: 1px solid var(--border);
+            height: 60px;
+        }
+
+        .header h1 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header h1 i {
+            color: var(--accent);
+        }
+
+        .flow-name {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .flow-name input {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 1rem;
+            width: 250px;
+        }
+
+        .flow-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .flow-status.draft {
+            background: rgba(255, 165, 2, 0.2);
+            color: var(--warning);
+        }
+
+        .flow-status.active {
+            background: rgba(46, 213, 115, 0.2);
+            color: var(--success);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-secondary {
+            background: var(--bg-node);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        /* Main Layout */
+        .main-container {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border);
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .sidebar-section {
+            margin-bottom: 25px;
+        }
+
+        .sidebar-section h3 {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .node-palette {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .node-item {
+            padding: 12px 15px;
+            border-radius: 8px;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .node-item:hover {
+            border-color: var(--border);
+            transform: translateX(-3px);
+        }
+
+        .node-item:active {
+            cursor: grabbing;
+        }
+
+        .node-item i {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        .node-item span {
+            font-size: 0.9rem;
+        }
+
+        /* Node Type Colors */
+        .node-trigger { background: rgba(30, 144, 255, 0.1); }
+        .node-trigger i { background: var(--info); color: white; }
+
+        .node-action { background: rgba(233, 69, 96, 0.1); }
+        .node-action i { background: var(--accent); color: white; }
+
+        .node-logic { background: rgba(255, 165, 2, 0.1); }
+        .node-logic i { background: var(--warning); color: white; }
+
+        .node-database { background: rgba(46, 213, 115, 0.1); }
+        .node-database i { background: var(--success); color: white; }
+
+        /* Canvas */
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: var(--bg-primary);
+            background-image: 
+                radial-gradient(circle, var(--border) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        #flow-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* React Flow Custom Nodes */
+        .react-flow__node {
+            border-radius: 10px;
+            padding: 0;
+            width: auto;
+            min-width: 180px;
+        }
+
+        .custom-node {
+            background: var(--bg-node);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            min-width: 180px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .custom-node.selected {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px rgba(233, 69, 96, 0.3);
+        }
+
+        .node-header {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .node-header.trigger { background: linear-gradient(135deg, var(--info), #0066cc); }
+        .node-header.action { background: linear-gradient(135deg, var(--accent), #cc3355); }
+        .node-header.logic { background: linear-gradient(135deg, var(--warning), #cc8800); }
+        .node-header.database { background: linear-gradient(135deg, var(--success), #22aa66); }
+
+        .node-header i {
+            font-size: 0.9rem;
+        }
+
+        .node-header span {
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .node-body {
+            padding: 12px;
+        }
+
+        .node-body p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .node-body small {
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        /* Handles */
+        .react-flow__handle {
+            width: 12px;
+            height: 12px;
+            border: 2px solid var(--bg-secondary);
+        }
+
+        .react-flow__handle-top {
+            top: -6px;
+        }
+
+        .react-flow__handle-bottom {
+            bottom: -6px;
+        }
+
+        .react-flow__handle-left {
+            left: -6px;
+        }
+
+        .react-flow__handle-right {
+            right: -6px;
+        }
+
+        /* Edges */
+        .react-flow__edge-path {
+            stroke: var(--accent);
+            stroke-width: 2;
+        }
+
+        /* Properties Panel */
+        .properties-panel {
+            width: 320px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border);
+            padding: 20px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .properties-panel.open {
+            display: block;
+        }
+
+        .properties-panel h3 {
+            font-size: 1rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .properties-panel h3 .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .prop-group {
+            margin-bottom: 20px;
+        }
+
+        .prop-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .prop-group input,
+        .prop-group select,
+        .prop-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .prop-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        /* Flow List Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-header h2 {
+            font-size: 1.2rem;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            max-height: calc(80vh - 140px);
+        }
+
+        .flow-list-item {
+            padding: 15px;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s;
+        }
+
+        .flow-list-item:hover {
+            background: var(--bg-node);
+        }
+
+        .flow-list-item h4 {
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+
+        .flow-list-item small {
+            color: var(--text-secondary);
+        }
+
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--bg-node);
+            padding: 12px 24px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            transition: transform 0.3s;
+            z-index: 2000;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .toast.success { border-right: 4px solid var(--success); }
+        .toast.error { border-right: 4px solid var(--accent); }
+
+        /* Mini Map */
+        .react-flow__minimap {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        /* Controls */
+        .react-flow__controls {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .react-flow__controls-button {
+            background: var(--bg-node);
+            border-color: var(--border);
+            fill: var(--text-primary);
+        }
+
+        .react-flow__controls-button:hover {
+            background: var(--border);
+        }
+
+        /* Empty State */
+        .empty-canvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .empty-canvas i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        .empty-canvas h3 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .empty-canvas p {
+            font-size: 0.9rem;
+        }
+
+        /* Back Link */
+        .back-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .back-link:hover {
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <a href="/" class="back-link"><i class="fa-solid fa-arrow-right"></i> חזרה</a>
+        <h1><i class="fa-solid fa-diagram-project"></i> Bot Builder</h1>
+        <div class="flow-name">
+            <input type="text" id="flowName" placeholder="שם התהליך..." value="תהליך הגרלה חדש">
+            <span class="flow-status draft" id="flowStatus">טיוטה</span>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-secondary" onclick="openFlowList()">
+                <i class="fa-solid fa-folder-open"></i> פתיחה
+            </button>
+            <button class="btn btn-secondary" onclick="saveFlow()">
+                <i class="fa-solid fa-save"></i> שמירה
+            </button>
+            <button class="btn btn-primary" onclick="toggleActive()">
+                <i class="fa-solid fa-play"></i> הפעלה
+            </button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <!-- Properties Panel -->
+        <div class="properties-panel" id="propertiesPanel">
+            <h3>
+                <span id="propNodeType">הגדרות צומת</span>
+                <button class="close-btn" onclick="closeProperties()">&times;</button>
+            </h3>
+            <div id="propertiesContent">
+                <!-- Dynamic content -->
+            </div>
+        </div>
+
+        <!-- Canvas -->
+        <div class="canvas-container">
+            <div id="flow-canvas">
+                <div class="empty-canvas" id="emptyState">
+                    <i class="fa-solid fa-diagram-project"></i>
+                    <h3>התחל לבנות תהליך</h3>
+                    <p>גרור צמתים מהתפריט בצד</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <h3>טריגרים</h3>
+                <div class="node-palette">
+                    <div class="node-item node-trigger" draggable="true" data-type="trigger" data-subtype="message_received">
+                        <i class="fa-solid fa-message"></i>
+                        <span>קבלת הודעה</span>
+                    </div>
+                    <div class="node-item node-trigger" draggable="true" data-type="trigger" data-subtype="button_click">
+                        <i class="fa-solid fa-hand-pointer"></i>
+                        <span>לחיצה על כפתור</span>
+                    </div>
+                    <div class="node-item node-trigger" draggable="true" data-type="trigger" data-subtype="list_select">
+                        <i class="fa-solid fa-list"></i>
+                        <span>בחירה מרשימה</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>לוגיקה</h3>
+                <div class="node-palette">
+                    <div class="node-item node-logic" draggable="true" data-type="logic" data-subtype="switch">
+                        <i class="fa-solid fa-code-branch"></i>
+                        <span>Switch (תנאים)</span>
+                    </div>
+                    <div class="node-item node-logic" draggable="true" data-type="logic" data-subtype="filter">
+                        <i class="fa-solid fa-filter"></i>
+                        <span>פילטר</span>
+                    </div>
+                    <div class="node-item node-logic" draggable="true" data-type="logic" data-subtype="wait">
+                        <i class="fa-solid fa-clock"></i>
+                        <span>המתנה</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>פעולות</h3>
+                <div class="node-palette">
+                    <div class="node-item node-action" draggable="true" data-type="action" data-subtype="send_text">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>שליחת הודעה</span>
+                    </div>
+                    <div class="node-item node-action" draggable="true" data-type="action" data-subtype="send_buttons">
+                        <i class="fa-solid fa-square-check"></i>
+                        <span>הודעה + כפתורים</span>
+                    </div>
+                    <div class="node-item node-action" draggable="true" data-type="action" data-subtype="send_list">
+                        <i class="fa-solid fa-bars"></i>
+                        <span>הודעה + רשימה</span>
+                    </div>
+                    <div class="node-item node-action" draggable="true" data-type="action" data-subtype="send_media">
+                        <i class="fa-solid fa-image"></i>
+                        <span>שליחת מדיה</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>מסד נתונים</h3>
+                <div class="node-palette">
+                    <div class="node-item node-database" draggable="true" data-type="database" data-subtype="sql_query">
+                        <i class="fa-solid fa-database"></i>
+                        <span>שאילתא SQL</span>
+                    </div>
+                    <div class="node-item node-database" draggable="true" data-type="database" data-subtype="add_participant">
+                        <i class="fa-solid fa-user-plus"></i>
+                        <span>הוסף משתתף</span>
+                    </div>
+                    <div class="node-item node-database" draggable="true" data-type="database" data-subtype="update_participant">
+                        <i class="fa-solid fa-user-pen"></i>
+                        <span>עדכן משתתף</span>
+                    </div>
+                    <div class="node-item node-database" draggable="true" data-type="database" data-subtype="add_card">
+                        <i class="fa-solid fa-ticket"></i>
+                        <span>הוסף כרטיס</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flow List Modal -->
+    <div class="modal-overlay" id="flowListModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-folder-open"></i> בחר תהליך</h2>
+                <button class="close-btn" onclick="closeFlowList()">&times;</button>
+            </div>
+            <div class="modal-body" id="flowListBody">
+                <!-- Flow list items -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeFlowList()">ביטול</button>
+                <button class="btn btn-primary" onclick="createNewFlow()">
+                    <i class="fa-solid fa-plus"></i> תהליך חדש
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast">
+        <i class="fa-solid fa-check"></i>
+        <span id="toastMessage">נשמר בהצלחה</span>
+    </div>
+
+    <!-- React Flow CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@xyflow/react@12/dist/umd/index.js"></script>
+
+    <script>
+        // State
+        let currentFlowId = null;
+        let nodes = [];
+        let edges = [];
+        let selectedNode = null;
+        let nodeIdCounter = 1;
+
+        // Toast
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            toastMessage.textContent = message;
+            toast.className = 'toast ' + type + ' show';
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // Flow List
+        async function openFlowList() {
+            try {
+                const res = await fetch('/api/flows');
+                const flows = await res.json();
+                
+                const body = document.getElementById('flowListBody');
+                if (flows.length === 0) {
+                    body.innerHTML = '<p style="text-align:center;color:var(--text-secondary);">אין תהליכים עדיין</p>';
+                } else {
+                    body.innerHTML = flows.map(f => `
+                        <div class="flow-list-item" onclick="loadFlow(${f.id})">
+                            <div>
+                                <h4>${f.name}</h4>
+                                <small>${f.type} | ${f.is_active ? 'פעיל' : 'לא פעיל'}</small>
+                            </div>
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </div>
+                    `).join('');
+                }
+                
+                document.getElementById('flowListModal').classList.add('open');
+            } catch (err) {
+                showToast('שגיאה בטעינת תהליכים', 'error');
+            }
+        }
+
+        function closeFlowList() {
+            document.getElementById('flowListModal').classList.remove('open');
+        }
+
+        async function createNewFlow() {
+            const name = prompt('שם התהליך:');
+            if (!name) return;
+            
+            try {
+                const res = await fetch('/api/flows', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, type: 'raffle' })
+                });
+                const flow = await res.json();
+                currentFlowId = flow.id;
+                document.getElementById('flowName').value = flow.name;
+                nodes = [];
+                edges = [];
+                renderCanvas();
+                closeFlowList();
+                showToast('נוצר תהליך חדש');
+            } catch (err) {
+                showToast('שגיאה ביצירת תהליך', 'error');
+            }
+        }
+
+        async function loadFlow(id) {
+            try {
+                const res = await fetch(`/api/flows/${id}`);
+                const flow = await res.json();
+                
+                currentFlowId = flow.id;
+                document.getElementById('flowName').value = flow.name;
+                document.getElementById('flowStatus').textContent = flow.is_active ? 'פעיל' : 'טיוטה';
+                document.getElementById('flowStatus').className = 'flow-status ' + (flow.is_active ? 'active' : 'draft');
+                
+                // Convert DB nodes to ReactFlow format
+                nodes = flow.nodes.map(n => ({
+                    id: n.node_id,
+                    type: 'custom',
+                    position: { x: n.position_x, y: n.position_y },
+                    data: { ...n.config, label: n.label, type: n.type, subtype: n.subtype }
+                }));
+                
+                edges = flow.edges.map(e => ({
+                    id: e.edge_id,
+                    source: e.source_node_id,
+                    sourceHandle: e.source_handle,
+                    target: e.target_node_id,
+                    targetHandle: e.target_handle
+                }));
+                
+                nodeIdCounter = nodes.length + 1;
+                renderCanvas();
+                closeFlowList();
+                showToast('נטען: ' + flow.name);
+            } catch (err) {
+                showToast('שגיאה בטעינת תהליך', 'error');
+            }
+        }
+
+        async function saveFlow() {
+            if (!currentFlowId) {
+                await createNewFlow();
+                if (!currentFlowId) return;
+            }
+            
+            try {
+                // Update flow name
+                await fetch(`/api/flows/${currentFlowId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: document.getElementById('flowName').value })
+                });
+                
+                // Save canvas
+                await fetch(`/api/flows/${currentFlowId}/canvas`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nodes, edges })
+                });
+                
+                showToast('נשמר בהצלחה');
+            } catch (err) {
+                showToast('שגיאה בשמירה', 'error');
+            }
+        }
+
+        async function toggleActive() {
+            if (!currentFlowId) {
+                showToast('יש לשמור את התהליך קודם', 'error');
+                return;
+            }
+            
+            const isActive = document.getElementById('flowStatus').textContent === 'פעיל';
+            
+            try {
+                await fetch(`/api/flows/${currentFlowId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ is_active: !isActive })
+                });
+                
+                document.getElementById('flowStatus').textContent = isActive ? 'טיוטה' : 'פעיל';
+                document.getElementById('flowStatus').className = 'flow-status ' + (isActive ? 'draft' : 'active');
+                showToast(isActive ? 'התהליך הופסק' : 'התהליך הופעל');
+            } catch (err) {
+                showToast('שגיאה בעדכון', 'error');
+            }
+        }
+
+        // Properties Panel
+        function openProperties(node) {
+            selectedNode = node;
+            const panel = document.getElementById('propertiesPanel');
+            const content = document.getElementById('propertiesContent');
+            const nodeType = document.getElementById('propNodeType');
+            
+            const data = node.data || {};
+            nodeType.textContent = getNodeLabel(data.type, data.subtype);
+            
+            let html = `
+                <div class="prop-group">
+                    <label>תווית</label>
+                    <input type="text" id="propLabel" value="${data.label || ''}" onchange="updateNodeProp('label', this.value)">
+                </div>
+            `;
+            
+            // Type-specific properties
+            if (data.subtype === 'send_text' || data.subtype === 'send_buttons' || data.subtype === 'send_list') {
+                html += `
+                    <div class="prop-group">
+                        <label>תוכן ההודעה</label>
+                        <textarea id="propMessage" onchange="updateNodeProp('message', this.value)">${data.message || ''}</textarea>
+                    </div>
+                `;
+            }
+            
+            if (data.subtype === 'send_buttons') {
+                html += `
+                    <div class="prop-group">
+                        <label>כפתורים (כל שורה = כפתור)</label>
+                        <textarea id="propButtons" onchange="updateNodeProp('buttons', this.value)">${data.buttons || ''}</textarea>
+                    </div>
+                `;
+            }
+            
+            if (data.subtype === 'send_list') {
+                html += `
+                    <div class="prop-group">
+                        <label>כותרת הרשימה</label>
+                        <input type="text" id="propListTitle" value="${data.listTitle || ''}" onchange="updateNodeProp('listTitle', this.value)">
+                    </div>
+                    <div class="prop-group">
+                        <label>אפשרויות (כל שורה = אפשרות)</label>
+                        <textarea id="propListItems" onchange="updateNodeProp('listItems', this.value)">${data.listItems || ''}</textarea>
+                    </div>
+                `;
+            }
+            
+            if (data.subtype === 'switch') {
+                html += `
+                    <div class="prop-group">
+                        <label>תנאים (JSON)</label>
+                        <textarea id="propConditions" onchange="updateNodeProp('conditions', this.value)">${data.conditions || '[]'}</textarea>
+                    </div>
+                `;
+            }
+            
+            if (data.subtype === 'sql_query') {
+                html += `
+                    <div class="prop-group">
+                        <label>שאילתת SQL</label>
+                        <textarea id="propSql" style="font-family:monospace" onchange="updateNodeProp('sql', this.value)">${data.sql || ''}</textarea>
+                    </div>
+                `;
+            }
+            
+            if (data.subtype === 'add_card') {
+                html += `
+                    <div class="prop-group">
+                        <label>כמות כרטיסים להוספה</label>
+                        <input type="number" id="propCardCount" value="${data.cardCount || 1}" onchange="updateNodeProp('cardCount', this.value)">
+                    </div>
+                `;
+            }
+            
+            if (data.subtype === 'wait') {
+                html += `
+                    <div class="prop-group">
+                        <label>זמן המתנה (שניות)</label>
+                        <input type="number" id="propWaitSeconds" value="${data.waitSeconds || 1}" onchange="updateNodeProp('waitSeconds', this.value)">
+                    </div>
+                `;
+            }
+            
+            if (data.subtype === 'filter') {
+                html += `
+                    <div class="prop-group">
+                        <label>שדה לבדיקה</label>
+                        <input type="text" id="propField" value="${data.field || ''}" onchange="updateNodeProp('field', this.value)">
+                    </div>
+                    <div class="prop-group">
+                        <label>אופרטור</label>
+                        <select id="propOperator" onchange="updateNodeProp('operator', this.value)">
+                            <option value="equals" ${data.operator === 'equals' ? 'selected' : ''}>שווה</option>
+                            <option value="contains" ${data.operator === 'contains' ? 'selected' : ''}>מכיל</option>
+                            <option value="starts_with" ${data.operator === 'starts_with' ? 'selected' : ''}>מתחיל ב</option>
+                            <option value="gt" ${data.operator === 'gt' ? 'selected' : ''}>גדול מ</option>
+                            <option value="lt" ${data.operator === 'lt' ? 'selected' : ''}>קטן מ</option>
+                        </select>
+                    </div>
+                    <div class="prop-group">
+                        <label>ערך</label>
+                        <input type="text" id="propValue" value="${data.value || ''}" onchange="updateNodeProp('value', this.value)">
+                    </div>
+                `;
+            }
+            
+            content.innerHTML = html;
+            panel.classList.add('open');
+        }
+
+        function closeProperties() {
+            document.getElementById('propertiesPanel').classList.remove('open');
+            selectedNode = null;
+        }
+
+        function updateNodeProp(key, value) {
+            if (!selectedNode) return;
+            
+            const nodeIndex = nodes.findIndex(n => n.id === selectedNode.id);
+            if (nodeIndex >= 0) {
+                nodes[nodeIndex].data[key] = value;
+                renderCanvas();
+            }
+        }
+
+        // Node utilities
+        function getNodeLabel(type, subtype) {
+            const labels = {
+                message_received: 'קבלת הודעה',
+                button_click: 'לחיצה על כפתור',
+                list_select: 'בחירה מרשימה',
+                switch: 'Switch',
+                filter: 'פילטר',
+                wait: 'המתנה',
+                send_text: 'שליחת הודעה',
+                send_buttons: 'הודעה + כפתורים',
+                send_list: 'הודעה + רשימה',
+                send_media: 'שליחת מדיה',
+                sql_query: 'שאילתא SQL',
+                add_participant: 'הוסף משתתף',
+                update_participant: 'עדכן משתתף',
+                add_card: 'הוסף כרטיס'
+            };
+            return labels[subtype] || subtype;
+        }
+
+        function getNodeIcon(subtype) {
+            const icons = {
+                message_received: 'fa-message',
+                button_click: 'fa-hand-pointer',
+                list_select: 'fa-list',
+                switch: 'fa-code-branch',
+                filter: 'fa-filter',
+                wait: 'fa-clock',
+                send_text: 'fa-paper-plane',
+                send_buttons: 'fa-square-check',
+                send_list: 'fa-bars',
+                send_media: 'fa-image',
+                sql_query: 'fa-database',
+                add_participant: 'fa-user-plus',
+                update_participant: 'fa-user-pen',
+                add_card: 'fa-ticket'
+            };
+            return icons[subtype] || 'fa-circle';
+        }
+
+        // Drag and Drop
+        document.querySelectorAll('.node-item').forEach(item => {
+            item.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('nodeType', item.dataset.type);
+                e.dataTransfer.setData('nodeSubtype', item.dataset.subtype);
+            });
+        });
+
+        const canvas = document.getElementById('flow-canvas');
+        canvas.addEventListener('dragover', (e) => e.preventDefault());
+        canvas.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const type = e.dataTransfer.getData('nodeType');
+            const subtype = e.dataTransfer.getData('nodeSubtype');
+            
+            if (!type || !subtype) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left - 90;
+            const y = e.clientY - rect.top - 30;
+            
+            const newNode = {
+                id: 'node_' + (nodeIdCounter++),
+                type: 'custom',
+                position: { x, y },
+                data: {
+                    type,
+                    subtype,
+                    label: getNodeLabel(type, subtype)
+                }
+            };
+            
+            nodes.push(newNode);
+            renderCanvas();
+            document.getElementById('emptyState').style.display = 'none';
+        });
+
+        // Simple Canvas Rendering (without full ReactFlow)
+        function renderCanvas() {
+            const canvas = document.getElementById('flow-canvas');
+            const empty = document.getElementById('emptyState');
+            
+            if (nodes.length === 0) {
+                empty.style.display = 'block';
+                canvas.innerHTML = '';
+                canvas.appendChild(empty);
+                return;
+            }
+            
+            empty.style.display = 'none';
+            
+            // Create SVG for edges
+            let svg = `<svg style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1;">`;
+            
+            edges.forEach(edge => {
+                const sourceNode = nodes.find(n => n.id === edge.source);
+                const targetNode = nodes.find(n => n.id === edge.target);
+                
+                if (sourceNode && targetNode) {
+                    const sx = sourceNode.position.x + 90;
+                    const sy = sourceNode.position.y + 70;
+                    const tx = targetNode.position.x + 90;
+                    const ty = targetNode.position.y;
+                    
+                    svg += `<path d="M ${sx} ${sy} C ${sx} ${sy + 50}, ${tx} ${ty - 50}, ${tx} ${ty}" 
+                                  stroke="var(--accent)" stroke-width="2" fill="none" marker-end="url(#arrow)"/>`;
+                }
+            });
+            
+            svg += `
+                <defs>
+                    <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)"/>
+                    </marker>
+                </defs>
+            </svg>`;
+            
+            // Create nodes HTML
+            let nodesHtml = nodes.map(node => {
+                const data = node.data || {};
+                return `
+                    <div class="custom-node" 
+                         style="position:absolute;left:${node.position.x}px;top:${node.position.y}px;z-index:2;"
+                         data-id="${node.id}"
+                         onclick="openProperties(nodes.find(n => n.id === '${node.id}'))"
+                         draggable="true">
+                        <div class="node-header ${data.type}">
+                            <i class="fa-solid ${getNodeIcon(data.subtype)}"></i>
+                            <span>${data.label || getNodeLabel(data.type, data.subtype)}</span>
+                        </div>
+                        <div class="node-body">
+                            ${data.message ? `<p>${data.message.substring(0, 50)}${data.message.length > 50 ? '...' : ''}</p>` : ''}
+                            ${data.subtype === 'add_card' ? `<p>+${data.cardCount || 1} כרטיסים</p>` : ''}
+                            ${data.subtype === 'wait' ? `<p>המתנה ${data.waitSeconds || 1} שניות</p>` : ''}
+                            <small>${data.type}</small>
+                        </div>
+                        <div class="handle handle-top" data-handle="top" style="position:absolute;top:-6px;left:50%;transform:translateX(-50%);width:12px;height:12px;background:var(--info);border-radius:50%;cursor:crosshair;"></div>
+                        <div class="handle handle-bottom" data-handle="bottom" style="position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:12px;height:12px;background:var(--accent);border-radius:50%;cursor:crosshair;"></div>
+                    </div>
+                `;
+            }).join('');
+            
+            canvas.innerHTML = svg + nodesHtml;
+            
+            // Make nodes draggable
+            canvas.querySelectorAll('.custom-node').forEach(nodeEl => {
+                let startX, startY, startPosX, startPosY;
+                
+                nodeEl.addEventListener('mousedown', (e) => {
+                    if (e.target.classList.contains('handle')) return;
+                    
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    const nodeId = nodeEl.dataset.id;
+                    const node = nodes.find(n => n.id === nodeId);
+                    startPosX = node.position.x;
+                    startPosY = node.position.y;
+                    
+                    const onMove = (e) => {
+                        const dx = e.clientX - startX;
+                        const dy = e.clientY - startY;
+                        node.position.x = startPosX + dx;
+                        node.position.y = startPosY + dy;
+                        nodeEl.style.left = node.position.x + 'px';
+                        nodeEl.style.top = node.position.y + 'px';
+                    };
+                    
+                    const onUp = () => {
+                        document.removeEventListener('mousemove', onMove);
+                        document.removeEventListener('mouseup', onUp);
+                        renderCanvas(); // Re-render to update edges
+                    };
+                    
+                    document.addEventListener('mousemove', onMove);
+                    document.addEventListener('mouseup', onUp);
+                });
+            });
+            
+            // Handle connections (simple click-based)
+            let connectingFrom = null;
+            canvas.querySelectorAll('.handle').forEach(handle => {
+                handle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const nodeEl = handle.closest('.custom-node');
+                    const nodeId = nodeEl.dataset.id;
+                    const handleType = handle.dataset.handle;
+                    
+                    if (!connectingFrom) {
+                        if (handleType === 'bottom') {
+                            connectingFrom = { nodeId, handle: handleType };
+                            handle.style.boxShadow = '0 0 10px var(--accent)';
+                        }
+                    } else {
+                        if (handleType === 'top' && connectingFrom.nodeId !== nodeId) {
+                            const edgeId = 'edge_' + Date.now();
+                            edges.push({
+                                id: edgeId,
+                                source: connectingFrom.nodeId,
+                                sourceHandle: 'bottom',
+                                target: nodeId,
+                                targetHandle: 'top'
+                            });
+                            renderCanvas();
+                        }
+                        connectingFrom = null;
+                    }
+                });
+            });
+        }
+
+        // Initialize
+        renderCanvas();
+    </script>
+</body>
+</html>

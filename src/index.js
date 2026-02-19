@@ -12,6 +12,7 @@ const whitelistRoutes = require('./routes/whitelist');
 const livechatRoutes = require('./routes/livechat');
 const n8nRoutes = require('./routes/n8n');
 const adminRoutes = require('./routes/admin');
+const flowsRoutes = require('./routes/flows');
 
 const app = express();
 const PORT = process.env.PORT || 3380;
@@ -42,6 +43,7 @@ app.use('/api/whitelist', whitelistRoutes);
 app.use('/api/livechat', livechatRoutes);
 app.use('/api/n8n', n8nRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/flows', flowsRoutes);
 
 // Error handler
 app.use((err, req, res, next) => {
