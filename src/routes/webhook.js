@@ -19,38 +19,48 @@ router.get('/', (req, res) => {
 // WhatsApp webhook receiver (POST)
 router.post('/', async (req, res) => {
     try {
-        // Immediately respond to WhatsApp
+        // Immediately respond
         res.sendStatus(200);
 
         const payload = req.body;
         
-        console.log('[ROUTE] Webhook received, object:', payload?.object);
+        console.log('\n========== WEBHOOK RECEIVED ==========');
+        console.log('Raw payload:', JSON.stringify(payload, null, 2).substring(0, 1000));
         
-        // Check if this is a message event
-        if (payload?.object !== 'whatsapp_business_account') {
-            console.log('[ROUTE] Not a WhatsApp business account event, skipping');
-            return;
+        // Detect format: Official WhatsApp or WAHA
+        let normalizedPayload = payload;
+        let format = 'unknown';
+        
+        if (payload?.object === 'whatsapp_business_account') {
+            format = 'official';
+            const messages = payload?.entry?.[0]?.changes?.[0]?.value?.messages;
+            if (!messages || messages.length === 0) {
+                console.log('[WEBHOOK] Official format but no messages, skipping');
+                return;
+            }
+        } else if (payload?.event || payload?.payload) {
+            // WAHA format
+            format = 'waha';
+            normalizedPayload = webhookProcessor.normalizeWahaPayload(payload);
+        } else {
+            console.log('[WEBHOOK] Unknown format, trying to process anyway...');
         }
         
-        const messages = payload?.entry?.[0]?.changes?.[0]?.value?.messages;
-        console.log('[ROUTE] Messages found:', messages?.length || 0);
-        
-        if (!messages || messages.length === 0) {
-            console.log('[ROUTE] No messages in payload, skipping');
-            return;
-        }
+        console.log('[WEBHOOK] Format detected:', format);
 
         // Process the webhook
-        const result = await webhookProcessor.processWhatsAppWebhook(payload);
-        console.log('[ROUTE] Webhook result:', result.action, result.reason || '');
+        const result = await webhookProcessor.processWhatsAppWebhook(normalizedPayload);
+        console.log('[WEBHOOK] Result:', result.action, '|', result.reason || 'OK');
 
         // Trigger the workflow if approved
         if (result.action === 'approve') {
-            console.log('[ROUTE] Triggering workflow...');
+            console.log('[WEBHOOK] Triggering workflow:', result.webhookUrl || result.workflowId);
             webhookProcessor.triggerWorkflow(result, payload);
         }
+        
+        console.log('=======================================\n');
     } catch (error) {
-        console.error('[ROUTE] Webhook error:', error);
+        console.error('[WEBHOOK] Error:', error.message);
     }
 });
 

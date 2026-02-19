@@ -275,6 +275,50 @@ class WebhookProcessor {
     sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
+
+    // Normalize WAHA payload to match official WhatsApp format
+    normalizeWahaPayload(wahaPayload) {
+        try {
+            const event = wahaPayload.event;
+            const data = wahaPayload.payload || wahaPayload;
+            
+            // WAHA sends different event types
+            if (event === 'message' || event === 'message.any') {
+                const from = data.from?.replace('@c.us', '') || data.chatId?.replace('@c.us', '');
+                const phoneBot = data.to?.replace('@c.us', '') || wahaPayload.session;
+                
+                return {
+                    object: 'whatsapp_business_account',
+                    entry: [{
+                        changes: [{
+                            value: {
+                                metadata: {
+                                    display_phone_number: phoneBot,
+                                    phone_number_id: phoneBot
+                                },
+                                contacts: [{
+                                    wa_id: from,
+                                    profile: { name: data.from || from }
+                                }],
+                                messages: [{
+                                    id: data.id || `waha_${Date.now()}`,
+                                    from: from,
+                                    timestamp: Math.floor(Date.now() / 1000),
+                                    type: data.type || 'text',
+                                    text: { body: data.body || data.text || '' }
+                                }]
+                            }
+                        }]
+                    }]
+                };
+            }
+            
+            return wahaPayload;
+        } catch (error) {
+            console.error('[WAHA] Normalization error:', error);
+            return wahaPayload;
+        }
+    }
 }
 
 module.exports = new WebhookProcessor();

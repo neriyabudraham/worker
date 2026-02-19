@@ -22,7 +22,7 @@ app.use(helmet({
     crossOriginEmbedderPolicy: false
 }));
 app.use(cors());
-app.use(morgan('combined'));
+// Disable morgan logging - use console.log for important events only
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
