@@ -5,7 +5,15 @@ const { query } = require('../db');
 // Get all bots
 router.get('/', async (req, res, next) => {
     try {
-        const result = await query('SELECT * FROM bots ORDER BY created_at DESC');
+        const result = await query(`
+            SELECT 
+                id, phone_number, phone_number_id, name, workflow_id, workflow_name,
+                n8n_webhook_url, status, access_mode, dynamic_sql_template,
+                to_char(active_from AT TIME ZONE 'Asia/Jerusalem', 'YYYY-MM-DD HH24:MI') as active_from,
+                to_char(active_until AT TIME ZONE 'Asia/Jerusalem', 'YYYY-MM-DD HH24:MI') as active_until,
+                delay_seconds, sort_order, created_at, updated_at
+            FROM bots ORDER BY created_at DESC
+        `);
         res.json(result.rows);
     } catch (error) {
         next(error);

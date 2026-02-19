@@ -544,6 +544,18 @@
 
   function getSmartDateDisplay(fromStr, untilStr) {
     const now = new Date();
+    
+    // Parse date string without timezone conversion
+    const parseLocal = (str) => {
+      if (!str) return null;
+      // Handle "YYYY-MM-DD HH:mm" or ISO format
+      const match = str.match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+      if (match) {
+        return new Date(match[1], match[2] - 1, match[3], match[4], match[5]);
+      }
+      return new Date(str);
+    };
+
     const timeFmt = (d) => d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
     const dateFmt = (d) => d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
     const isToday = (d) => d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
@@ -553,7 +565,7 @@
     }
 
     if (fromStr) {
-      const from = new Date(fromStr);
+      const from = parseLocal(fromStr);
       if (now < from) {
         const txt = isToday(from) ? `מתחיל היום ב-${timeFmt(from)}` : `מתחיל ב-${dateFmt(from)}`;
         return `<span class="time-tag future"><i class="fa-regular fa-clock"></i> ${txt}</span>`;
@@ -561,7 +573,7 @@
     }
 
     if (untilStr) {
-      const until = new Date(untilStr);
+      const until = parseLocal(untilStr);
       if (now > until) {
         return `<span class="time-tag ended">הסתיים ב-${dateFmt(until)}</span>`;
       } else {
