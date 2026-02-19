@@ -156,16 +156,16 @@ router.patch('/:id/toggle', async (req, res, next) => {
 // Reorder bots
 router.post('/reorder', async (req, res, next) => {
     try {
-        const { order } = req.body;
+        const { orders } = req.body;
         
-        if (!order || !Array.isArray(order)) {
-            return res.status(400).json({ error: 'order array is required' });
+        if (!orders || !Array.isArray(orders)) {
+            return res.status(400).json({ error: 'orders array is required' });
         }
 
-        for (const item of order) {
+        for (const item of orders) {
             await query(
                 'UPDATE bots SET sort_order = $1 WHERE id = $2',
-                [item.position, item.id]
+                [item.sort_order, item.id]
             );
         }
 

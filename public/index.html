@@ -596,25 +596,35 @@
       data.workflow_name = workflowName;
     }
 
-    await fetch(`${API}/api/bots/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-
-    Object.assign(bot, data);
-
-    if (field === 'status' || field === 'access_mode') {
-      bots.sort((a, b) => {
-        const statusA = a.status === 'active' ? 1 : 0;
-        const statusB = b.status === 'active' ? 1 : 0;
-        if (statusA !== statusB) return statusB - statusA;
-        return (a.sort_order || 0) - (b.sort_order || 0);
+    try {
+      const res = await fetch(`${API}/api/bots/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
       });
-      renderTable();
-    }
 
-    showToast('השינויים נשמרו');
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'שגיאה בשמירה');
+      }
+
+      Object.assign(bot, data);
+
+      if (field === 'status' || field === 'access_mode') {
+        bots.sort((a, b) => {
+          const statusA = a.status === 'active' ? 1 : 0;
+          const statusB = b.status === 'active' ? 1 : 0;
+          if (statusA !== statusB) return statusB - statusA;
+          return (a.sort_order || 0) - (b.sort_order || 0);
+        });
+        renderTable();
+      }
+
+      showToast('השינויים נשמרו');
+    } catch (e) {
+      console.error('Update error:', e);
+      showToast('שגיאה: ' + e.message);
+    }
   }
 
   async function saveOrder() {
@@ -623,13 +633,19 @@
       orders.push({ id: parseInt(tr.dataset.id), sort_order: idx });
     });
 
-    await fetch(`${API}/api/bots/reorder`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orders })
-    });
+    try {
+      const res = await fetch(`${API}/api/bots/reorder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orders })
+      });
 
-    showToast('סדר הבוטים עודכן!');
+      if (!res.ok) throw new Error('שגיאה בשמירת הסדר');
+      showToast('סדר הבוטים עודכן!');
+    } catch (e) {
+      console.error('Reorder error:', e);
+      showToast('שגיאה בשמירת הסדר');
+    }
   }
 
   function openSettings(id) {
@@ -662,17 +678,27 @@
       dynamic_sql_template: queryVal
     };
 
-    await fetch(`${API}/api/bots/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
+    try {
+      const res = await fetch(`${API}/api/bots/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
 
-    const bot = bots.find(b => b.id == id);
-    Object.assign(bot, data);
-    renderTable();
-    showToast('ההגדרות נשמרו בהצלחה!');
-    closeSettings();
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'שגיאה בשמירה');
+      }
+
+      const bot = bots.find(b => b.id == id);
+      Object.assign(bot, data);
+      renderTable();
+      showToast('ההגדרות נשמרו בהצלחה!');
+      closeSettings();
+    } catch (e) {
+      console.error('Save settings error:', e);
+      showToast('שגיאה: ' + e.message);
+    }
   }
 
   async function addBot() {
