@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS bots (
     phone_number_id VARCHAR(50),
     name VARCHAR(100),
     workflow_id VARCHAR(100),
+    workflow_name VARCHAR(255),
     n8n_webhook_url TEXT,
     status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
     access_mode VARCHAR(30) DEFAULT 'everyone' CHECK (access_mode IN ('everyone', 'whitelist', 'dynamic')),
@@ -14,6 +15,7 @@ CREATE TABLE IF NOT EXISTS bots (
     active_from TIMESTAMP,
     active_until TIMESTAMP,
     delay_seconds INTEGER DEFAULT 0,
+    sort_order INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

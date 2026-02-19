@@ -1,286 +1,686 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bot Router - ניהול בוטים</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>מערכת ניהול בוטים</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/material_blue.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://npmcdn.com/flatpickr/dist/l10n/he.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+  <style>
+    :root {
+      --primary: #4361ee;
+      --primary-hover: #3a56d4;
+      --bg: #f3f6f9;
+      --card-bg: #ffffff;
+      --text-main: #2b2d42;
+      --text-muted: #8d99ae;
+      --border: #e9ecef;
+      --success: #10b981;
+      --danger: #ef4444;
+      --radius: 12px;
+      --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    body {
+      font-family: 'Heebo', sans-serif;
+      background: var(--bg);
+      margin: 0;
+      padding: 20px;
+      color: var(--text-main);
+    }
+
+    .container {
+      max-width: 1500px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      padding: 30px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .header h1 { margin: 0; font-size: 1.8rem; font-weight: 700; color: #1e293b; }
+
+    .controls {
+      display: flex;
+      align-items: center;
+      margin-bottom: 20px;
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .table-responsive { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; min-width: 1100px; }
+    
+    th { 
+      text-align: right; 
+      padding: 18px; 
+      background: #f8fafc; 
+      color: #64748b; 
+      font-size: 0.85rem; 
+      font-weight: 600;
+      text-transform: uppercase; 
+      border-bottom: 2px solid var(--border);
+    }
+    
+    td { 
+      padding: 16px; 
+      border-bottom: 1px solid var(--border); 
+      vertical-align: middle; 
+      background: white; 
+      font-size: 0.95rem;
+    }
+    tr:hover td { background-color: #f8fafc; }
+    tr.sortable-ghost { background: #e0f2fe; opacity: 0.8; }
+
+    .phone-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+        color: var(--text-main);
+        font-family: 'Courier New', monospace;
+        font-weight: 700;
+        font-size: 1.05rem;
+        padding: 5px 10px;
+        border-radius: 6px;
+        transition: all 0.2s;
+        background: #f1f5f9;
+    }
+    .phone-link i { color: #25D366; font-size: 1.2rem; }
+    .phone-link:hover { background: #dcfce7; color: #14532d; transform: translateX(-3px); }
+
+    .time-tag { 
+        padding: 6px 12px; border-radius: 6px; font-weight: 500; font-size: 0.85rem; 
+        display: inline-flex; align-items: center; gap: 6px; width: fit-content;
+    }
+    .time-tag.future { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+    .time-tag.ending-soon { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+    .time-tag.ended { background: #f3f4f6; color: #6b7280; text-decoration: line-through; opacity: 0.7; }
+    .time-tag.today { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+
+    .date-input-group {
+        display: flex;
+        align-items: center;
+        background: white;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        overflow: hidden;
+        position: relative;
+    }
+    .date-input-group input { 
+        border: none; flex: 1; outline: none; padding: 10px; font-family: inherit; background: transparent; 
+    }
+    .clear-date-btn { 
+        background: none; border: none; color: #adb5bd; cursor: pointer; padding: 0 10px; font-size: 1.1rem; z-index: 2; 
+    }
+    .clear-date-btn:hover { color: var(--danger); }
+
+    .sql-editor-container { position: relative; border-radius: 8px; overflow: hidden; border: 1px solid #333; }
+    .sql-editor {
+        width: 100%; background: #1e1e1e; color: #d4d4d4;
+        font-family: 'Consolas', 'Monaco', monospace; font-size: 0.9rem;
+        padding: 15px; border: none; outline: none; resize: vertical; line-height: 1.5; direction: ltr;
+    }
+    .sql-badge { position: absolute; top: 0; right: 0; background: #333; color: #fff; font-size: 0.7rem; padding: 2px 8px; border-bottom-left-radius: 6px; font-family: sans-serif; }
+
+    select, input { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-family: inherit; }
+    .btn { border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: 0.2s; }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-icon { background: transparent; border: none; cursor: pointer; font-size: 1.1rem; color: var(--text-muted); padding: 8px; border-radius: 50%; transition: 0.2s; }
+    .btn-icon:hover { background: #f1f5f9; color: var(--primary); }
+    .btn-icon.delete:hover { color: var(--danger); background: #fee2e2; }
+    .drag-handle { cursor: grab; color: #cbd5e1; font-size: 1.2rem; }
+    .drag-handle:active { cursor: grabbing; color: var(--primary); }
+
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 1000; justify-content: center; align-items: center; }
+    .modal-overlay.open { display: flex; }
+    .modal-box { background: white; width: 90%; max-width: 600px; padding: 30px; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); animation: slideUp 0.3s ease; max-height: 90vh; overflow-y: auto; }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    
+    .loader-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 2000; justify-content: center; align-items: center; }
+    .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    
+    .hidden { display: none !important; }
+    .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px 25px; border-radius: 30px; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 3000; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+    .toast.show { opacity: 1; bottom: 40px; }
+
+    @media screen and (max-width: 900px) {
+        body { padding: 10px; }
+        .container { padding: 15px; }
+        thead { display: none; }
+        table, tbody, th, td, tr { display: block; width: 100%; min-width: 0 !important; }
+        tr {
+            margin-bottom: 20px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            padding: 15px;
+            position: relative;
+        }
+        td {
+            text-align: left;
+            padding: 10px 5px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        td:last-child { border-bottom: none; }
+        td::before {
+            content: attr(data-label);
+            font-weight: 700;
+            color: #64748b;
+            font-size: 0.85rem;
+            margin-left: 15px;
+            text-transform: uppercase;
+        }
+        select, input { max-width: 60%; }
+        td.drag-handle {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            border: none;
+            padding: 0;
+            width: auto;
+            justify-content: flex-end;
+        }
+        td.drag-handle::before { content: ""; }
+        td[data-label="ID"] { color: #ccc; font-size: 0.8rem; border: none; padding-top: 0; }
+        #newBotPhone { width: 100% !important; margin-bottom: 10px; }
+        .header { flex-direction: column; align-items: flex-start; gap: 10px; }
+        .header button { width: 100%; }
+    }
+  </style>
 </head>
-<body class="bg-gray-900 text-white min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <header class="mb-8">
-            <h1 class="text-3xl font-bold text-emerald-400">🤖 Bot Router</h1>
-            <p class="text-gray-400 mt-2">מערכת ניהול וניתוב וובהוקים לוואטסאפ</p>
-        </header>
+<body>
 
-        <!-- Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8" id="stats">
-            <div class="bg-gray-800 rounded-lg p-6">
-                <div class="text-4xl font-bold text-emerald-400" id="stat-bots">-</div>
-                <div class="text-gray-400">בוטים פעילים</div>
-            </div>
-            <div class="bg-gray-800 rounded-lg p-6">
-                <div class="text-4xl font-bold text-blue-400" id="stat-messages">-</div>
-                <div class="text-gray-400">הודעות היום</div>
-            </div>
-            <div class="bg-gray-800 rounded-lg p-6">
-                <div class="text-4xl font-bold text-purple-400" id="stat-total">-</div>
-                <div class="text-gray-400">סה״כ הודעות</div>
-            </div>
-            <div class="bg-gray-800 rounded-lg p-6">
-                <div class="text-4xl font-bold text-red-400" id="stat-blocked">-</div>
-                <div class="text-gray-400">מספרים חסומים</div>
-            </div>
-        </div>
+<div class="loader-overlay" id="globalLoader"><div class="spinner"></div></div>
 
-        <!-- Bots Table -->
-        <div class="bg-gray-800 rounded-lg p-6 mb-8">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold">בוטים</h2>
-                <button onclick="openAddBot()" class="bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded-lg">
-                    + הוסף בוט
-                </button>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead>
-                        <tr class="text-gray-400 text-right border-b border-gray-700">
-                            <th class="pb-3">מספר טלפון</th>
-                            <th class="pb-3">שם</th>
-                            <th class="pb-3">סטטוס</th>
-                            <th class="pb-3">מצב גישה</th>
-                            <th class="pb-3">הודעות</th>
-                            <th class="pb-3">פעולות</th>
-                        </tr>
-                    </thead>
-                    <tbody id="bots-table">
-                        <tr><td colspan="6" class="text-center py-8 text-gray-500">טוען...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+<div class="container">
+  <div class="header">
+    <h1><i class="fa-solid fa-robot" style="color:var(--primary);"></i> ניהול בוטים</h1>
+    <button class="btn btn-danger" onclick="openBlacklist()"><i class="fa-solid fa-ban"></i> ניהול חסומים</button>
+  </div>
 
-        <!-- Add/Edit Bot Modal -->
-        <div id="bot-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-            <div class="bg-gray-800 rounded-lg p-6 w-full max-w-lg mx-4">
-                <h3 class="text-xl font-bold mb-4" id="modal-title">הוסף בוט</h3>
-                <form id="bot-form" class="space-y-4">
-                    <input type="hidden" id="bot-id">
-                    <div>
-                        <label class="block text-gray-400 mb-1">מספר טלפון</label>
-                        <input type="text" id="bot-phone" class="w-full bg-gray-700 rounded px-4 py-2" placeholder="972524039934" required>
-                    </div>
-                    <div>
-                        <label class="block text-gray-400 mb-1">שם הבוט</label>
-                        <input type="text" id="bot-name" class="w-full bg-gray-700 rounded px-4 py-2" placeholder="הבוט שלי">
-                    </div>
-                    <div>
-                        <label class="block text-gray-400 mb-1">Webhook URL (n8n)</label>
-                        <input type="url" id="bot-webhook" class="w-full bg-gray-700 rounded px-4 py-2" placeholder="https://n8n.example.com/webhook/xxx">
-                    </div>
-                    <div>
-                        <label class="block text-gray-400 mb-1">מצב גישה</label>
-                        <select id="bot-access" class="w-full bg-gray-700 rounded px-4 py-2">
-                            <option value="everyone">כולם</option>
-                            <option value="whitelist">רשימה לבנה</option>
-                            <option value="dynamic">שאילתה דינאמית</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-gray-400 mb-1">השהיה (שניות)</label>
-                        <input type="number" id="bot-delay" class="w-full bg-gray-700 rounded px-4 py-2" value="0" min="0">
-                    </div>
-                    <div class="flex gap-2 pt-4">
-                        <button type="submit" class="flex-1 bg-emerald-500 hover:bg-emerald-600 py-2 rounded-lg">שמור</button>
-                        <button type="button" onclick="closeModal()" class="flex-1 bg-gray-600 hover:bg-gray-500 py-2 rounded-lg">ביטול</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <!-- Blocked Numbers Section -->
-        <div class="bg-gray-800 rounded-lg p-6">
-            <h2 class="text-xl font-bold mb-4">מספרים חסומים (גלובלי)</h2>
-            <div class="flex gap-2 mb-4">
-                <input type="text" id="block-phone" class="flex-1 bg-gray-700 rounded px-4 py-2" placeholder="מספר לחסימה...">
-                <button onclick="blockNumber()" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg">חסום</button>
-            </div>
-            <div id="blocked-list" class="space-y-2 max-h-64 overflow-y-auto"></div>
-        </div>
+  <div class="controls">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <label><i class="fa-solid fa-filter"></i> סינון:</label>
+      <select id="statusFilter" onchange="renderTable()">
+        <option value="all">הכל</option>
+        <option value="active">פעילים</option>
+        <option value="off">לא פעילים</option>
+      </select>
     </div>
+  </div>
 
-    <script>
-        const API = '';
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:30px"></th>
+          <th style="width:50px">ID</th>
+          <th>מספר (לחץ לווצאפ)</th>
+          <th>Workflow</th>
+          <th style="width:120px">סטטוס</th>
+          <th>תזמון פעילות</th>
+          <th>גישה</th>
+          <th style="width:100px">פעולות</th>
+          <th style="text-align:center; width:60px">מחיקה</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+  
+  <div style="margin-top:25px; background:#f0f9ff; padding:20px; border-radius:12px; border:1px dashed #bae6fd; display:flex; flex-wrap:wrap; gap:15px; align-items:center;">
+    <span style="font-weight:bold; color:#0369a1;"><i class="fa-solid fa-plus"></i> הוספת בוט חדש:</span>
+    <input type="tel" id="newBotPhone" placeholder="מספר טלפון (972...)" style="width:250px; background:white;">
+    <button class="btn btn-primary" onclick="addBot()">הוסף</button>
+  </div>
+</div>
 
-        async function loadStats() {
-            try {
-                const res = await fetch(`${API}/api/admin/stats`);
-                const data = await res.json();
-                document.getElementById('stat-bots').textContent = data.bots;
-                document.getElementById('stat-messages').textContent = data.today_messages;
-                document.getElementById('stat-total').textContent = data.total_messages;
-                document.getElementById('stat-blocked').textContent = data.blocked_numbers;
-            } catch (e) {
-                console.error('Failed to load stats:', e);
+<!-- Settings Modal -->
+<div id="settingsModal" class="modal-overlay">
+  <div class="modal-box">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; border-bottom:1px solid #eee; padding-bottom:15px;">
+      <h3 style="margin:0; font-size:1.5rem;">⚙️ הגדרות בוט</h3>
+      <button class="btn-icon" onclick="closeSettings()"><i class="fa-solid fa-xmark fa-lg"></i></button>
+    </div>
+    
+    <div style="margin-bottom:25px;">
+      <h4 style="margin:0 0 10px 0; color:var(--text-muted); font-size:0.9rem;"><i class="fa-regular fa-calendar-days"></i> תזמון פעילות</h4>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+        <div>
+          <label style="font-size:0.85rem; margin-bottom:5px; display:block;">פעיל מ-:</label>
+          <div class="date-input-group">
+             <input type="text" id="setFrom" placeholder="בחר תאריך ושעה..." data-input>
+             <button class="clear-date-btn" title="נקה תאריך" onclick="clearDate('setFrom')"><i class="fa-solid fa-circle-xmark"></i></button>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:0.85rem; margin-bottom:5px; display:block;">פעיל עד-:</label>
+          <div class="date-input-group">
+             <input type="text" id="setUntil" placeholder="בחר תאריך ושעה..." data-input>
+             <button class="clear-date-btn" title="נקה תאריך" onclick="clearDate('setUntil')"><i class="fa-solid fa-circle-xmark"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div style="margin-bottom:25px;">
+      <h4 style="margin:0 0 10px 0; color:var(--text-muted); font-size:0.9rem;"><i class="fa-solid fa-stopwatch"></i> השהיה (שניות)</h4>
+      <input type="number" id="setDelay" placeholder="0" min="0" style="width:100px;">
+    </div>
+    
+    <div id="dynamicQuerySection" class="hidden">
+      <h4 style="margin:0 0 10px 0; color:var(--text-muted); font-size:0.9rem;"><i class="fa-solid fa-database"></i> שאילתא דינאמית (SQL)</h4>
+      <div class="sql-editor-container">
+        <span class="sql-badge">SQL Editor</span>
+        <textarea id="setQuery" class="sql-editor" rows="6" placeholder="SELECT * FROM users WHERE phone = {{phone}}"></textarea>
+      </div>
+      <p style="font-size:0.8rem; color:#666; margin-top:5px;">💡 השתמש ב-<code>{{phone}}</code> למספר הלקוח.</p>
+    </div>
+    
+    <div style="text-align:left; margin-top:30px;">
+      <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="saveSettings()">💾 שמור הגדרות</button>
+    </div>
+  </div>
+</div>
+
+<!-- List Modal (Whitelist/Blacklist) -->
+<div id="listModal" class="modal-overlay">
+  <div class="modal-box" style="max-width:450px;">
+    <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+        <h3 id="listTitle" style="margin:0"></h3>
+        <button class="btn-icon" onclick="document.getElementById('listModal').classList.remove('open')">×</button>
+    </div>
+    <div style="display:flex; gap:10px; margin-bottom:15px; background:#f8f9fa; padding:10px; border-radius:8px;">
+      <input type="text" id="listInput" placeholder="מספר..." style="flex:1">
+      <button class="btn btn-primary" onclick="addListItem()"><i class="fa-solid fa-plus"></i></button>
+    </div>
+    <div id="listContainer" style="height:300px; overflow-y:auto; border:1px solid #eee; padding:5px; border-radius:6px;"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+  const API = '';
+  let bots = [];
+  let workflows = [];
+  let whitelist = [];
+  let blacklist = [];
+  
+  let currentSettingsId = null;
+  let currentListType = '';
+  let currentBotId = null;
+  let fpFrom = null;
+  let fpUntil = null;
+
+  document.addEventListener('DOMContentLoaded', function() {
+      const config = {
+          enableTime: true,
+          dateFormat: "Y-m-d H:i",
+          time_24hr: true,
+          locale: "he",
+          disableMobile: "true",
+          defaultHour: 0,
+          defaultMinute: 0         
+      };
+      fpFrom = flatpickr("#setFrom", config);
+      fpUntil = flatpickr("#setUntil", config);
+      
+      loadData();
+  });
+
+  async function loadData() {
+      showLoader(true);
+      try {
+          const [botsRes, workflowsRes, blockedRes] = await Promise.all([
+              fetch(`${API}/api/bots`),
+              fetch(`${API}/api/n8n/workflows`),
+              fetch(`${API}/api/blocked`)
+          ]);
+          
+          bots = await botsRes.json();
+          workflows = await workflowsRes.json();
+          blacklist = await blockedRes.json();
+          
+          // Sort bots
+          bots.sort((a, b) => {
+              const statusA = a.status === 'active' ? 1 : 0;
+              const statusB = b.status === 'active' ? 1 : 0;
+              if (statusA !== statusB) return statusB - statusA;
+              return (a.sort_order || 0) - (b.sort_order || 0);
+          });
+          
+          renderTable();
+      } catch (e) {
+          console.error('Failed to load data:', e);
+          showToast('שגיאה בטעינת נתונים');
+      }
+      showLoader(false);
+  }
+
+  function clearDate(inputId) {
+      if(inputId === 'setFrom') fpFrom.clear();
+      if(inputId === 'setUntil') fpUntil.clear();
+  }
+
+  function getSmartDateDisplay(fromStr, untilStr) {
+    const now = new Date();
+    const timeFmt = (d) => d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+    const dateFmt = (d) => d.toLocaleDateString('he-IL', { day: '2-digit', month: '2-digit' });
+    const isToday = (d) => d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+
+    if (!fromStr && !untilStr) {
+        return `<span title="ללא הגבלת זמן" style="color:#cbd5e1; font-size:1.2rem;">∞</span>`;
+    }
+
+    if (fromStr) {
+        const from = new Date(fromStr);
+        if (now < from) {
+            const txt = isToday(from) ? `מתחיל היום ב-${timeFmt(from)}` : `מתחיל ב-${dateFmt(from)}`;
+            return `<span class="time-tag future"><i class="fa-regular fa-clock"></i> ${txt}</span>`;
+        }
+    }
+
+    if (untilStr) {
+        const until = new Date(untilStr);
+        if (now > until) {
+            return `<span class="time-tag ended">הסתיים ב-${dateFmt(until)}</span>`;
+        } else {
+            if (isToday(until)) {
+                return `<span class="time-tag ending-soon"><i class="fa-solid fa-hourglass-half"></i> מסתיים היום ב-${timeFmt(until)}</span>`;
+            } else {
+                return `<span class="time-tag today"><i class="fa-regular fa-calendar-check"></i> מסתיים ב-${dateFmt(until)}</span>`;
             }
         }
+    }
+    
+    return `<span style="color:#10b981; font-size:0.8rem;">פעיל</span>`;
+  }
 
-        async function loadBots() {
-            try {
-                const res = await fetch(`${API}/api/admin/bots-overview`);
-                const bots = await res.json();
-                const tbody = document.getElementById('bots-table');
-                
-                if (bots.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-500">אין בוטים. הוסף את הבוט הראשון!</td></tr>';
-                    return;
-                }
+  function renderTable() {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+    const filter = document.getElementById('statusFilter').value;
 
-                tbody.innerHTML = bots.map(bot => `
-                    <tr class="border-b border-gray-700">
-                        <td class="py-3 font-mono">${bot.phone_number}</td>
-                        <td class="py-3">${bot.name || '-'}</td>
-                        <td class="py-3">
-                            <span class="px-2 py-1 rounded text-sm ${bot.status === 'active' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}">
-                                ${bot.status === 'active' ? 'פעיל' : 'כבוי'}
-                            </span>
-                        </td>
-                        <td class="py-3">${{everyone: 'כולם', whitelist: 'רשימה לבנה', dynamic: 'דינאמי'}[bot.access_mode] || bot.access_mode}</td>
-                        <td class="py-3">${bot.message_count}</td>
-                        <td class="py-3">
-                            <button onclick="toggleBot(${bot.id})" class="text-yellow-400 hover:text-yellow-300 ml-2">⏻</button>
-                            <button onclick="editBot(${bot.id})" class="text-blue-400 hover:text-blue-300 ml-2">✏️</button>
-                            <button onclick="deleteBot(${bot.id})" class="text-red-400 hover:text-red-300">🗑️</button>
-                        </td>
-                    </tr>
-                `).join('');
-            } catch (e) {
-                console.error('Failed to load bots:', e);
-            }
-        }
+    bots.forEach(bot => {
+      if (filter === 'active' && bot.status !== 'active') return;
+      if (filter === 'off' && bot.status !== 'inactive') return;
 
-        async function loadBlocked() {
-            try {
-                const res = await fetch(`${API}/api/blocked`);
-                const blocked = await res.json();
-                const list = document.getElementById('blocked-list');
-                
-                if (blocked.length === 0) {
-                    list.innerHTML = '<div class="text-gray-500">אין מספרים חסומים</div>';
-                    return;
-                }
+      const tr = document.createElement('tr');
+      tr.setAttribute('data-id', bot.id);
+      
+      let workflowOpts = '<option value="">-- ללא --</option>';
+      workflows.forEach(w => {
+        const sel = w.id === bot.workflow_id ? 'selected' : '';
+        workflowOpts += `<option value="${w.id}" ${sel}>${w.name}</option>`;
+      });
 
-                list.innerHTML = blocked.map(b => `
-                    <div class="flex justify-between items-center bg-gray-700 rounded px-3 py-2">
-                        <span class="font-mono">${b.phone}</span>
-                        <button onclick="unblockNumber('${b.phone}')" class="text-red-400 hover:text-red-300">הסר</button>
-                    </div>
-                `).join('');
-            } catch (e) {
-                console.error('Failed to load blocked:', e);
-            }
-        }
+      const isActive = bot.status === 'active';
+      const cleanPhone = (bot.phone_number || '').replace(/[^0-9]/g, ''); 
+      const waLink = `https://wa.me/${cleanPhone}`;
 
-        function openAddBot() {
-            document.getElementById('modal-title').textContent = 'הוסף בוט';
-            document.getElementById('bot-form').reset();
-            document.getElementById('bot-id').value = '';
-            document.getElementById('bot-modal').classList.remove('hidden');
-            document.getElementById('bot-modal').classList.add('flex');
-        }
+      tr.innerHTML = `
+        <td class="drag-handle" data-label=""><i class="fa-solid fa-grip-vertical"></i></td>
+        <td style="color:#94a3b8; font-size:0.85rem;" data-label="ID">${bot.id}</td>
+        
+        <td data-label="מספר">
+            <a href="${waLink}" target="_blank" rel="noopener noreferrer" class="phone-link" title="פתח שיחה בוואטסאפ">
+                <i class="fa-brands fa-whatsapp"></i> ${bot.phone_number}
+            </a>
+        </td>
+        
+        <td data-label="Workflow"><select style="width:100%" onchange="updateBot(${bot.id}, 'workflow_id', this.value)">${workflowOpts}</select></td>
+        
+        <td data-label="סטטוס">
+          <select style="width:100%; border-color: ${isActive?'var(--success)':'#ccc'}; font-weight:bold; color:${isActive?'var(--success)':'var(--danger)'}"
+                  onchange="updateBot(${bot.id}, 'status', this.value)">
+            <option value="active" ${isActive?'selected':''}>פעיל</option>
+            <option value="inactive" ${!isActive?'selected':''}>כבוי</option>
+          </select>
+        </td>
 
-        function closeModal() {
-            document.getElementById('bot-modal').classList.add('hidden');
-            document.getElementById('bot-modal').classList.remove('flex');
-        }
+        <td data-label="תזמון">${getSmartDateDisplay(bot.active_from, bot.active_until)}</td>
+        
+        <td data-label="גישה">
+          <select style="width:100%" onchange="updateBot(${bot.id}, 'access_mode', this.value)">
+            <option value="everyone" ${bot.access_mode==='everyone'?'selected':''}>🔓 כולם</option>
+            <option value="whitelist" ${bot.access_mode==='whitelist'?'selected':''}>📝 רשימה לבנה</option>
+            <option value="dynamic" ${bot.access_mode==='dynamic'?'selected':''}>⚡ רשימה דינאמית</option>
+          </select>
+        </td>
+        
+        <td data-label="פעולות">
+          <div style="display:flex; gap:5px; justify-content: flex-end;">
+             <button class="btn-icon" style="${bot.access_mode==='whitelist'?'':'opacity:0.3'}" 
+                 onclick="${bot.access_mode==='whitelist' ? `openList('whitelist', ${bot.id}, '${bot.phone_number}')` : ''}"><i class="fa-solid fa-users"></i></button>
+             <button class="btn-icon" onclick="openSettings(${bot.id})"><i class="fa-solid fa-gear"></i></button>
+          </div>
+        </td>
+        <td style="text-align:center" data-label="מחיקה"><button class="btn-icon delete" onclick="deleteBot(${bot.id})"><i class="fa-solid fa-trash"></i></button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+    
+    // Enable drag & drop
+    Sortable.create(document.getElementById('tableBody'), {
+      handle: '.drag-handle', 
+      animation: 150,
+      ghostClass: 'sortable-ghost',
+      onEnd: saveOrder
+    });
+  }
 
-        async function editBot(id) {
-            const res = await fetch(`${API}/api/bots/${id}`);
-            const bot = await res.json();
-            
-            document.getElementById('modal-title').textContent = 'ערוך בוט';
-            document.getElementById('bot-id').value = bot.id;
-            document.getElementById('bot-phone').value = bot.phone_number;
-            document.getElementById('bot-name').value = bot.name || '';
-            document.getElementById('bot-webhook').value = bot.n8n_webhook_url || '';
-            document.getElementById('bot-access').value = bot.access_mode;
-            document.getElementById('bot-delay').value = bot.delay_seconds || 0;
-            
-            document.getElementById('bot-modal').classList.remove('hidden');
-            document.getElementById('bot-modal').classList.add('flex');
-        }
+  async function saveOrder() {
+    const order = [];
+    document.querySelectorAll('#tableBody tr').forEach((tr, idx) => {
+      order.push({ id: parseInt(tr.getAttribute('data-id')), position: idx });
+    });
+    
+    // Update local state
+    order.forEach(item => {
+        const bot = bots.find(b => b.id === item.id);
+        if (bot) bot.sort_order = item.position;
+    });
+    
+    await fetch(`${API}/api/bots/reorder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order })
+    });
+    showToast('סדר הבוטים עודכן!');
+  }
 
-        document.getElementById('bot-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('bot-id').value;
-            const data = {
-                phone_number: document.getElementById('bot-phone').value,
-                name: document.getElementById('bot-name').value,
-                n8n_webhook_url: document.getElementById('bot-webhook').value,
-                access_mode: document.getElementById('bot-access').value,
-                delay_seconds: parseInt(document.getElementById('bot-delay').value) || 0
-            };
+  async function updateBot(id, field, value) {
+    const bot = bots.find(b => b.id === id);
+    if (bot) bot[field] = value;
+    
+    await fetch(`${API}/api/bots/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value })
+    });
+    
+    renderTable();
+    showToast('השינויים נשמרו');
+  }
 
-            const url = id ? `${API}/api/bots/${id}` : `${API}/api/bots`;
-            const method = id ? 'PUT' : 'POST';
+  function openSettings(id) {
+    currentSettingsId = id;
+    const bot = bots.find(b => b.id == id);
+    
+    fpFrom.setDate(bot.active_from || null);
+    fpUntil.setDate(bot.active_until || null);
 
-            await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
+    document.getElementById('setDelay').value = bot.delay_seconds || 0;
+    document.getElementById('setQuery').value = bot.dynamic_sql_template || '';
 
-            closeModal();
-            loadBots();
-            loadStats();
+    const qs = document.getElementById('dynamicQuerySection');
+    bot.access_mode === 'dynamic' ? qs.classList.remove('hidden') : qs.classList.add('hidden');
+    document.getElementById('settingsModal').classList.add('open');
+  }
+
+  function closeSettings() { document.getElementById('settingsModal').classList.remove('open'); }
+
+  async function saveSettings() {
+    const data = {
+      active_from: document.getElementById('setFrom').value || null,
+      active_until: document.getElementById('setUntil').value || null,
+      delay_seconds: parseInt(document.getElementById('setDelay').value) || 0,
+      dynamic_sql_template: document.getElementById('setQuery').value
+    };
+
+    await fetch(`${API}/api/bots/${currentSettingsId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+    
+    const bot = bots.find(b => b.id == currentSettingsId);
+    if (bot) Object.assign(bot, data);
+    
+    renderTable(); 
+    showToast('ההגדרות נשמרו בהצלחה!');
+    closeSettings();
+  }
+
+  function openBlacklist() { openList('blacklist', null, 'חסימות כלליות'); }
+  
+  async function openList(type, botId, title) {
+    currentListType = type;
+    currentBotId = botId;
+    document.getElementById('listTitle').innerText = title;
+    
+    if (type === 'whitelist' && botId) {
+        const res = await fetch(`${API}/api/whitelist/bot/${botId}`);
+        whitelist = await res.json();
+    }
+    
+    renderList();
+    document.getElementById('listModal').classList.add('open');
+  }
+
+  function renderList() {
+    const div = document.getElementById('listContainer');
+    div.innerHTML = '';
+    let items = currentListType === 'blacklist' ? blacklist : whitelist;
+    
+    if (items.length === 0) {
+        div.innerHTML = '<div style="text-align:center;color:#999;margin-top:20px">אין רשומות</div>';
+        return;
+    }
+    
+    items.forEach(item => {
+      const phone = item.phone || item.client_phone;
+      div.innerHTML += `<div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid #eee; background:white;">
+        <span>${phone}</span>
+        <button class="btn-icon delete" onclick="deleteListItem(${item.id}, '${phone}')"><i class="fa-solid fa-trash"></i></button>
+      </div>`;
+    });
+  }
+
+  async function addListItem() {
+    const phone = document.getElementById('listInput').value.trim();
+    if (!phone) return;
+    
+    if (currentListType === 'blacklist') {
+        await fetch(`${API}/api/blocked`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone })
         });
+        blacklist.push({ phone });
+    } else {
+        await fetch(`${API}/api/whitelist`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bot_id: currentBotId, phone })
+        });
+        whitelist.push({ phone });
+    }
+    
+    document.getElementById('listInput').value = '';
+    renderList();
+    showToast('נוסף בהצלחה');
+  }
+  
+  async function deleteListItem(id, phone) {
+    if (currentListType === 'blacklist') {
+        await fetch(`${API}/api/blocked/${phone}`, { method: 'DELETE' });
+        blacklist = blacklist.filter(b => b.phone !== phone);
+    } else {
+        await fetch(`${API}/api/whitelist/${currentBotId}/${phone}`, { method: 'DELETE' });
+        whitelist = whitelist.filter(w => w.phone !== phone);
+    }
+    renderList();
+    showToast('נמחק בהצלחה');
+  }
 
-        async function toggleBot(id) {
-            await fetch(`${API}/api/bots/${id}/toggle`, { method: 'PATCH' });
-            loadBots();
-        }
+  async function addBot() {
+    const phone = document.getElementById('newBotPhone').value.trim();
+    if (!phone) return;
+    
+    showLoader(true);
+    await fetch(`${API}/api/bots`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            phone_number: phone, 
+            status: 'inactive',
+            access_mode: 'whitelist'
+        })
+    });
+    
+    document.getElementById('newBotPhone').value = '';
+    await loadData();
+    showToast('בוט נוסף בהצלחה');
+  }
+  
+  async function deleteBot(id) {
+    if (!confirm('למחוק בוט זה?')) return;
+    
+    showLoader(true);
+    await fetch(`${API}/api/bots/${id}`, { method: 'DELETE' });
+    bots = bots.filter(b => b.id !== id);
+    renderTable();
+    showLoader(false);
+    showToast('הבוט נמחק');
+  }
 
-        async function deleteBot(id) {
-            if (!confirm('למחוק את הבוט?')) return;
-            await fetch(`${API}/api/bots/${id}`, { method: 'DELETE' });
-            loadBots();
-            loadStats();
-        }
+  function showLoader(show) {
+    document.getElementById('globalLoader').style.display = show ? 'flex' : 'none';
+  }
 
-        async function blockNumber() {
-            const phone = document.getElementById('block-phone').value.trim();
-            if (!phone) return;
-            
-            await fetch(`${API}/api/blocked`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone })
-            });
-            
-            document.getElementById('block-phone').value = '';
-            loadBlocked();
-            loadStats();
-        }
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.innerText = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+</script>
 
-        async function unblockNumber(phone) {
-            await fetch(`${API}/api/blocked/${phone}`, { method: 'DELETE' });
-            loadBlocked();
-            loadStats();
-        }
-
-        // Initial load
-        loadStats();
-        loadBots();
-        loadBlocked();
-
-        // Auto refresh every 30 seconds
-        setInterval(() => {
-            loadStats();
-            loadBots();
-        }, 30000);
-    </script>
 </body>
 </html>

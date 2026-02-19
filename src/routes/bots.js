@@ -145,4 +145,26 @@ router.patch('/:id/toggle', async (req, res, next) => {
     }
 });
 
+// Reorder bots
+router.post('/reorder', async (req, res, next) => {
+    try {
+        const { order } = req.body;
+        
+        if (!order || !Array.isArray(order)) {
+            return res.status(400).json({ error: 'order array is required' });
+        }
+
+        for (const item of order) {
+            await query(
+                'UPDATE bots SET sort_order = $1 WHERE id = $2',
+                [item.position, item.id]
+            );
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        next(error);
+    }
+});
+
 module.exports = router;

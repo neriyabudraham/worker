@@ -2,8 +2,41 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../db');
 const axios = require('axios');
+const n8nApi = require('../services/n8nApi');
 
 const N8N_BASE_URL = process.env.N8N_BASE_URL || 'https://n8n2.neriyabudraham.co.il';
+
+// Get all workflows from n8n
+router.get('/workflows', async (req, res, next) => {
+    try {
+        const { nameContains, active } = req.query;
+        const filters = {};
+        
+        if (nameContains) filters.nameContains = nameContains;
+        if (active !== undefined) filters.active = active === 'true';
+        
+        // Default exclusions (like in your n8n workflow)
+        filters.nameNotContains = ['ממשק', 'סיום', 'עדכוני', 'שליחת', 'למשיכת', 'טיוטה'];
+        
+        const workflows = await n8nApi.getWorkflows(filters);
+        res.json(workflows);
+    } catch (error) {
+        next(error);
+    }
+});
+
+// Get specific workflow
+router.get('/workflows/:id', async (req, res, next) => {
+    try {
+        const workflow = await n8nApi.getWorkflow(req.params.id);
+        if (!workflow) {
+            return res.status(404).json({ error: 'Workflow not found' });
+        }
+        res.json(workflow);
+    } catch (error) {
+        next(error);
+    }
+});
 
 // Trigger n8n workflow by ID
 router.post('/trigger/:workflowId', async (req, res, next) => {
