@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ניהול מספרי WhatsApp</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Heebo', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    }
+    
+    .header {
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid #e2e8f0;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .back-btn {
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      border: none;
+      background: transparent;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+    .back-btn:hover {
+      background: #f1f5f9;
+      color: #1e293b;
+    }
+    
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .header h1 i {
+      color: #25D366;
+    }
+    
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.9rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #25D366, #128C7E);
+      color: white;
+      box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(37, 211, 102, 0.4);
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    
+    .stat-card {
+      background: white;
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+      border: 1px solid #f1f5f9;
+    }
+    
+    .stat-card .stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      color: white;
+      margin-bottom: 1rem;
+    }
+    
+    .stat-card .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    
+    .stat-card .stat-label {
+      font-size: 0.875rem;
+      color: #64748b;
+    }
+    
+    .numbers-section {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+      border: 1px solid #f1f5f9;
+      overflow: hidden;
+    }
+    
+    .section-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .section-header h2 {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    
+    .numbers-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .numbers-table th {
+      text-align: right;
+      padding: 1rem 1.5rem;
+      background: #f8fafc;
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: #64748b;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .numbers-table td {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 0.9rem;
+    }
+    
+    .numbers-table tr:last-child td {
+      border-bottom: none;
+    }
+    
+    .numbers-table tr:hover td {
+      background: #f8fafc;
+    }
+    
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.375rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    
+    .status-badge.verified {
+      background: #dcfce7;
+      color: #16a34a;
+    }
+    
+    .status-badge.pending {
+      background: #fef3c7;
+      color: #d97706;
+    }
+    
+    .status-badge.inactive {
+      background: #f1f5f9;
+      color: #64748b;
+    }
+    
+    .action-btn {
+      width: 36px;
+      height: 36px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: #f1f5f9;
+      color: #64748b;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-left: 0.5rem;
+    }
+    
+    .action-btn:hover {
+      background: #e2e8f0;
+      color: #1e293b;
+    }
+    
+    .action-btn.test { color: #3b82f6; }
+    .action-btn.test:hover { background: #eff6ff; }
+    .action-btn.delete { color: #ef4444; }
+    .action-btn.delete:hover { background: #fef2f2; }
+    
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s;
+    }
+    
+    .modal-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .modal {
+      background: white;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      transform: translateY(20px);
+      transition: all 0.3s;
+    }
+    
+    .modal-overlay.show .modal {
+      transform: translateY(0);
+    }
+    
+    .modal-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .modal-header h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .modal-header h3 i {
+      color: #25D366;
+    }
+    
+    .modal-close {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      border-radius: 10px;
+      transition: all 0.2s;
+    }
+    
+    .modal-close:hover {
+      background: #f1f5f9;
+      color: #64748b;
+    }
+    
+    .modal-body {
+      padding: 1.5rem;
+    }
+    
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+    
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 0.875rem 1rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+      background: #fafafa;
+    }
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: #25D366;
+      background: white;
+      box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
+    }
+    
+    .form-group small {
+      display: block;
+      margin-top: 0.375rem;
+      font-size: 0.8rem;
+      color: #94a3b8;
+    }
+    
+    .form-group .input-with-icon {
+      position: relative;
+    }
+    
+    .form-group .input-with-icon input {
+      padding-right: 3rem;
+    }
+    
+    .form-group .input-with-icon i {
+      position: absolute;
+      right: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94a3b8;
+    }
+    
+    .modal-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid #f1f5f9;
+      display: flex;
+      gap: 0.75rem;
+      background: #fafafa;
+    }
+    
+    .modal-footer .btn {
+      flex: 1;
+      justify-content: center;
+    }
+    
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #64748b;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
+    
+    .btn-verify {
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      color: white;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+    
+    .btn-verify:hover {
+      transform: translateY(-2px);
+    }
+    
+    .btn-verify:disabled, .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .verification-result {
+      padding: 1rem;
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      display: none;
+    }
+    
+    .verification-result.success {
+      background: #dcfce7;
+      color: #16a34a;
+      display: block;
+    }
+    
+    .verification-result.error {
+      background: #fef2f2;
+      color: #dc2626;
+      display: block;
+    }
+    
+    .verification-result i {
+      margin-left: 0.5rem;
+    }
+    
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #1e293b;
+      color: white;
+      padding: 1rem 2rem;
+      border-radius: 12px;
+      font-weight: 500;
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    
+    .toast.success { background: #16a34a; }
+    .toast.error { background: #dc2626; }
+    
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: #64748b;
+    }
+    
+    .empty-state i {
+      font-size: 4rem;
+      color: #e2e8f0;
+      margin-bottom: 1rem;
+    }
+    
+    .empty-state h3 {
+      font-size: 1.25rem;
+      color: #1e293b;
+      margin-bottom: 0.5rem;
+    }
+    
+    .phone-display {
+      font-family: 'Courier New', monospace;
+      font-weight: 600;
+      color: #1e293b;
+    }
+    
+    .linked-flow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.375rem 0.75rem;
+      background: #eff6ff;
+      color: #3b82f6;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    
+    .no-flow {
+      color: #94a3b8;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-right">
+      <a href="/builder" class="back-btn">
+        <i class="fa-solid fa-arrow-right"></i>
+      </a>
+      <h1>
+        <i class="fa-brands fa-whatsapp"></i>
+        ניהול מספרי WhatsApp
+      </h1>
+    </div>
+    <button class="btn btn-primary" onclick="openAddModal()">
+      <i class="fa-solid fa-plus"></i>
+      הוסף מספר חדש
+    </button>
+  </div>
+  
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #25D366, #128C7E);">
+          <i class="fa-brands fa-whatsapp"></i>
+        </div>
+        <div class="stat-value" id="total-numbers">0</div>
+        <div class="stat-label">מספרים פעילים</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #3b82f6, #6366f1);">
+          <i class="fa-solid fa-link"></i>
+        </div>
+        <div class="stat-value" id="linked-numbers">0</div>
+        <div class="stat-label">מקושרים לתהליך</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+          <i class="fa-solid fa-message"></i>
+        </div>
+        <div class="stat-value" id="messages-today">-</div>
+        <div class="stat-label">הודעות היום</div>
+      </div>
+    </div>
+    
+    <div class="numbers-section">
+      <div class="section-header">
+        <h2><i class="fa-solid fa-list" style="margin-left: 0.5rem; color: #64748b;"></i> רשימת מספרים</h2>
+      </div>
+      <div id="numbers-container">
+        <div class="empty-state">
+          <i class="fa-brands fa-whatsapp"></i>
+          <h3>אין מספרים מוגדרים</h3>
+          <p>הוסף מספר WhatsApp חדש כדי להתחיל</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Add Number Modal -->
+  <div class="modal-overlay" id="add-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3><i class="fa-brands fa-whatsapp"></i> הוספת מספר WhatsApp</h3>
+        <button class="modal-close" onclick="closeAddModal()">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="verification-result" id="verification-result"></div>
+        
+        <div class="form-group">
+          <label>מספר טלפון</label>
+          <div class="input-with-icon">
+            <input type="text" id="phone-number" placeholder="972501234567" dir="ltr">
+            <i class="fa-solid fa-phone"></i>
+          </div>
+          <small>מספר הטלפון בפורמט בינלאומי (ללא +)</small>
+        </div>
+        
+        <div class="form-group">
+          <label>Phone Number ID</label>
+          <div class="input-with-icon">
+            <input type="text" id="phone-number-id" placeholder="123456789012345" dir="ltr">
+            <i class="fa-solid fa-hashtag"></i>
+          </div>
+          <small>מזהה המספר מ-Meta Business Suite</small>
+        </div>
+        
+        <div class="form-group">
+          <label>WhatsApp Business Account ID</label>
+          <div class="input-with-icon">
+            <input type="text" id="waba-id" placeholder="123456789012345" dir="ltr">
+            <i class="fa-solid fa-building"></i>
+          </div>
+          <small>מזהה חשבון העסק (WABA ID)</small>
+        </div>
+        
+        <div class="form-group">
+          <label>Access Token</label>
+          <div class="input-with-icon">
+            <input type="password" id="access-token" placeholder="EAAxxxxxxx..." dir="ltr">
+            <i class="fa-solid fa-key"></i>
+          </div>
+          <small>טוקן גישה קבוע מ-Meta for Developers</small>
+        </div>
+        
+        <div class="form-group">
+          <label>שם (אופציונלי)</label>
+          <input type="text" id="bot-name" placeholder="לדוגמה: בוט הגרלות">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeAddModal()">ביטול</button>
+        <button class="btn btn-verify" id="verify-btn" onclick="verifyCredentials()">
+          <i class="fa-solid fa-check-circle"></i>
+          אימות
+        </button>
+        <button class="btn btn-primary" id="save-btn" onclick="saveNumber()" disabled>
+          <i class="fa-solid fa-save"></i>
+          שמירה
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Test Message Modal -->
+  <div class="modal-overlay" id="test-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-paper-plane" style="color: #3b82f6;"></i> שליחת הודעת בדיקה</h3>
+        <button class="modal-close" onclick="closeTestModal()">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>שלח הודעת בדיקה למספר</label>
+          <div class="input-with-icon">
+            <input type="text" id="test-to-number" placeholder="972501234567" dir="ltr">
+            <i class="fa-solid fa-phone"></i>
+          </div>
+          <small>מספר הטלפון שיקבל את הודעת הבדיקה</small>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeTestModal()">ביטול</button>
+        <button class="btn btn-primary" onclick="sendTestMessage()">
+          <i class="fa-solid fa-paper-plane"></i>
+          שלח
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="toast" id="toast"></div>
+  
+  <script>
+    let numbers = [];
+    let currentTestBotId = null;
+    let isVerified = false;
+    
+    async function loadNumbers() {
+      try {
+        const res = await fetch('/api/whatsapp/numbers');
+        numbers = await res.json();
+        renderNumbers();
+        updateStats();
+      } catch (err) {
+        console.error('Failed to load numbers:', err);
+        showToast('שגיאה בטעינת המספרים', 'error');
+      }
+    }
+    
+    function renderNumbers() {
+      const container = document.getElementById('numbers-container');
+      
+      if (numbers.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fa-brands fa-whatsapp"></i>
+            <h3>אין מספרים מוגדרים</h3>
+            <p>הוסף מספר WhatsApp חדש כדי להתחיל</p>
+          </div>
+        `;
+        return;
+      }
+      
+      container.innerHTML = `
+        <table class="numbers-table">
+          <thead>
+            <tr>
+              <th>מספר</th>
+              <th>שם</th>
+              <th>סטטוס</th>
+              <th>מקושר לתהליך</th>
+              <th>פעולות</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${numbers.map(num => `
+              <tr>
+                <td class="phone-display">${formatPhone(num.phone_number)}</td>
+                <td>${num.name || '-'}</td>
+                <td>
+                  <span class="status-badge ${num.has_token ? 'verified' : 'pending'}">
+                    <i class="fa-solid fa-${num.has_token ? 'check-circle' : 'clock'}"></i>
+                    ${num.has_token ? 'מאומת' : 'לא מאומת'}
+                  </span>
+                </td>
+                <td>
+                  ${num.flow_id ? 
+                    `<a href="/builder/editor/${num.flow_id}" class="linked-flow">
+                      <i class="fa-solid fa-project-diagram"></i>
+                      תהליך #${num.flow_id}
+                    </a>` : 
+                    '<span class="no-flow">לא מקושר</span>'
+                  }
+                </td>
+                <td>
+                  <button class="action-btn test" onclick="openTestModal(${num.id})" title="שלח הודעת בדיקה" ${!num.has_token ? 'disabled' : ''}>
+                    <i class="fa-solid fa-paper-plane"></i>
+                  </button>
+                  <button class="action-btn delete" onclick="deleteNumber(${num.id})" title="מחק">
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+    
+    function updateStats() {
+      document.getElementById('total-numbers').textContent = numbers.filter(n => n.has_token).length;
+      document.getElementById('linked-numbers').textContent = numbers.filter(n => n.flow_id).length;
+    }
+    
+    function formatPhone(phone) {
+      if (!phone) return '-';
+      if (phone.startsWith('972')) {
+        return phone.replace(/^972/, '+972-').replace(/(\d{2})(\d{3})(\d{4})$/, '$1-$2-$3');
+      }
+      return phone;
+    }
+    
+    function openAddModal() {
+      document.getElementById('add-modal').classList.add('show');
+      resetAddForm();
+    }
+    
+    function closeAddModal() {
+      document.getElementById('add-modal').classList.remove('show');
+      resetAddForm();
+    }
+    
+    function resetAddForm() {
+      document.getElementById('phone-number').value = '';
+      document.getElementById('phone-number-id').value = '';
+      document.getElementById('waba-id').value = '';
+      document.getElementById('access-token').value = '';
+      document.getElementById('bot-name').value = '';
+      document.getElementById('verification-result').className = 'verification-result';
+      document.getElementById('verification-result').innerHTML = '';
+      document.getElementById('save-btn').disabled = true;
+      isVerified = false;
+    }
+    
+    async function verifyCredentials() {
+      const phoneNumberId = document.getElementById('phone-number-id').value.trim();
+      const accessToken = document.getElementById('access-token').value.trim();
+      
+      if (!phoneNumberId || !accessToken) {
+        showVerificationResult('נא להזין Phone Number ID ו-Access Token', false);
+        return;
+      }
+      
+      const verifyBtn = document.getElementById('verify-btn');
+      verifyBtn.disabled = true;
+      verifyBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> מאמת...';
+      
+      try {
+        const res = await fetch('/api/whatsapp/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone_number_id: phoneNumberId, access_token: accessToken })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+          showVerificationResult(`✅ אומת בהצלחה! שם עסק: ${data.data.verified_name || 'לא זמין'}`, true);
+          document.getElementById('save-btn').disabled = false;
+          isVerified = true;
+          
+          // Auto-fill phone if available
+          if (data.data.display_phone_number && !document.getElementById('phone-number').value) {
+            const phone = data.data.display_phone_number.replace(/[^\d]/g, '');
+            document.getElementById('phone-number').value = phone;
+          }
+        } else {
+          showVerificationResult('❌ האימות נכשל: ' + data.error, false);
+          isVerified = false;
+        }
+      } catch (err) {
+        showVerificationResult('❌ שגיאה באימות: ' + err.message, false);
+        isVerified = false;
+      }
+      
+      verifyBtn.disabled = false;
+      verifyBtn.innerHTML = '<i class="fa-solid fa-check-circle"></i> אימות';
+    }
+    
+    function showVerificationResult(message, success) {
+      const el = document.getElementById('verification-result');
+      el.className = 'verification-result ' + (success ? 'success' : 'error');
+      el.innerHTML = message;
+    }
+    
+    async function saveNumber() {
+      if (!isVerified) {
+        showToast('יש לאמת את הפרטים קודם', 'error');
+        return;
+      }
+      
+      const data = {
+        phone_number: document.getElementById('phone-number').value.trim(),
+        phone_number_id: document.getElementById('phone-number-id').value.trim(),
+        waba_id: document.getElementById('waba-id').value.trim() || null,
+        access_token: document.getElementById('access-token').value.trim(),
+        name: document.getElementById('bot-name').value.trim() || null
+      };
+      
+      if (!data.phone_number) {
+        showToast('נא להזין מספר טלפון', 'error');
+        return;
+      }
+      
+      const saveBtn = document.getElementById('save-btn');
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> שומר...';
+      
+      try {
+        const res = await fetch('/api/whatsapp/numbers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await res.json();
+        
+        if (res.ok) {
+          showToast('המספר נוסף בהצלחה!', 'success');
+          closeAddModal();
+          loadNumbers();
+        } else {
+          showToast(result.error || 'שגיאה בשמירה', 'error');
+        }
+      } catch (err) {
+        showToast('שגיאה: ' + err.message, 'error');
+      }
+      
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = '<i class="fa-solid fa-save"></i> שמירה';
+    }
+    
+    function openTestModal(botId) {
+      currentTestBotId = botId;
+      document.getElementById('test-modal').classList.add('show');
+    }
+    
+    function closeTestModal() {
+      document.getElementById('test-modal').classList.remove('show');
+      document.getElementById('test-to-number').value = '';
+      currentTestBotId = null;
+    }
+    
+    async function sendTestMessage() {
+      const to = document.getElementById('test-to-number').value.trim();
+      
+      if (!to) {
+        showToast('נא להזין מספר יעד', 'error');
+        return;
+      }
+      
+      try {
+        const res = await fetch('/api/whatsapp/test-send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bot_id: currentTestBotId, to })
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+          showToast('הודעת בדיקה נשלחה בהצלחה!', 'success');
+          closeTestModal();
+        } else {
+          showToast('שגיאה: ' + data.error, 'error');
+        }
+      } catch (err) {
+        showToast('שגיאה: ' + err.message, 'error');
+      }
+    }
+    
+    async function deleteNumber(id) {
+      if (!confirm('האם למחוק את המספר?')) return;
+      
+      try {
+        const res = await fetch(`/api/bots/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          showToast('המספר נמחק', 'success');
+          loadNumbers();
+        } else {
+          showToast('שגיאה במחיקה', 'error');
+        }
+      } catch (err) {
+        showToast('שגיאה: ' + err.message, 'error');
+      }
+    }
+    
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = 'toast ' + type + ' show';
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+    
+    // Init
+    loadNumbers();
+  </script>
+</body>
+</html>

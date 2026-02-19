@@ -13,6 +13,7 @@ const livechatRoutes = require('./routes/livechat');
 const n8nRoutes = require('./routes/n8n');
 const adminRoutes = require('./routes/admin');
 const flowsRoutes = require('./routes/flows');
+const whatsappRoutes = require('./routes/whatsapp');
 
 const app = express();
 const PORT = process.env.PORT || 3380;
@@ -37,6 +38,9 @@ app.get('/builder', (req, res) => {
 app.get('/builder/editor/:id', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/builder/editor.html'));
 });
+app.get('/builder/numbers', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/builder/numbers.html'));
+});
 
 // Health check
 app.get('/health', (req, res) => {
@@ -52,6 +56,7 @@ app.use('/api/livechat', livechatRoutes);
 app.use('/api/n8n', n8nRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/flows', flowsRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
 
 
 // Error handler
