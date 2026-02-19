@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* ReactFlow customization */
+.react-flow__node {
+  font-family: inherit;
+}
+
+.react-flow__handle {
+  width: 12px;
+  height: 12px;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+.react-flow__controls {
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.react-flow__controls-button {
+  border-radius: 8px;
+}
+
+.react-flow__minimap {
+  border-radius: 12px;
+}
