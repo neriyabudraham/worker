@@ -2,6 +2,7 @@ const { query } = require('../db');
 const axios = require('axios');
 
 const MASTER_PHONE = process.env.MASTER_PHONE || '972584254229';
+const N8N_BASE_URL = process.env.N8N_BASE_URL || 'https://n8n2.neriyabudraham.co.il';
 
 class WebhookProcessor {
     async processWhatsAppWebhook(payload) {
@@ -244,31 +245,41 @@ class WebhookProcessor {
             await this.sleep(result.delay * 1000);
         }
 
+        // Determine the webhook URL
+        let webhookUrl = result.webhookUrl;
+        
+        // If no webhookUrl but we have a workflowId, construct the URL
+        if (!webhookUrl && result.workflowId) {
+            webhookUrl = `${N8N_BASE_URL}/webhook/${result.workflowId}`;
+            console.log('[TRIGGER] Constructed webhook URL from workflow ID');
+        }
+
         // Update message as processed
         if (result.messageData?.messageId) {
             await query(
                 `UPDATE livechat SET processed = true, workflow_triggered = $1 WHERE message_id = $2`,
-                [result.workflowId || result.webhookUrl, result.messageData.messageId]
+                [webhookUrl || result.workflowId, result.messageData.messageId]
             );
         }
 
         // Trigger n8n workflow via webhook
-        console.log('[TRIGGER] Webhook URL:', result.webhookUrl);
-        console.log('[TRIGGER] Workflow ID:', result.workflowId);
+        console.log('[TRIGGER] Target URL:', webhookUrl);
         
-        if (result.webhookUrl) {
+        if (webhookUrl) {
             try {
-                console.log('[TRIGGER] Sending to n8n webhook:', result.webhookUrl);
-                const response = await axios.post(result.webhookUrl, originalPayload, {
+                const response = await axios.post(webhookUrl, originalPayload, {
                     timeout: 30000,
                     headers: { 'Content-Type': 'application/json' }
                 });
-                console.log('[TRIGGER] n8n response status:', response.status);
+                console.log('[TRIGGER] SUCCESS! n8n response:', response.status);
             } catch (error) {
-                console.error('[TRIGGER] n8n webhook trigger failed:', error.message);
+                console.error('[TRIGGER] FAILED:', error.message);
+                if (error.response) {
+                    console.error('[TRIGGER] Response status:', error.response.status);
+                }
             }
         } else {
-            console.log('[TRIGGER] No webhook URL configured!');
+            console.log('[TRIGGER] No webhook URL or workflow ID!');
         }
     }
 
