@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -10,16 +11,23 @@ const blockedRoutes = require('./routes/blocked');
 const whitelistRoutes = require('./routes/whitelist');
 const livechatRoutes = require('./routes/livechat');
 const n8nRoutes = require('./routes/n8n');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3380;
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false
+}));
 app.use(cors());
 app.use(morgan('combined'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files
+app.use(express.static(path.join(__dirname, '../public')));
 
 // Health check
 app.get('/health', (req, res) => {
@@ -33,6 +41,7 @@ app.use('/api/blocked', blockedRoutes);
 app.use('/api/whitelist', whitelistRoutes);
 app.use('/api/livechat', livechatRoutes);
 app.use('/api/n8n', n8nRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Error handler
 app.use((err, req, res, next) => {

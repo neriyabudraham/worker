@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Router - ניהול בוטים</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-emerald-400">🤖 Bot Router</h1>
+            <p class="text-gray-400 mt-2">מערכת ניהול וניתוב וובהוקים לוואטסאפ</p>
+        </header>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8" id="stats">
+            <div class="bg-gray-800 rounded-lg p-6">
+                <div class="text-4xl font-bold text-emerald-400" id="stat-bots">-</div>
+                <div class="text-gray-400">בוטים פעילים</div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-6">
+                <div class="text-4xl font-bold text-blue-400" id="stat-messages">-</div>
+                <div class="text-gray-400">הודעות היום</div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-6">
+                <div class="text-4xl font-bold text-purple-400" id="stat-total">-</div>
+                <div class="text-gray-400">סה״כ הודעות</div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-6">
+                <div class="text-4xl font-bold text-red-400" id="stat-blocked">-</div>
+                <div class="text-gray-400">מספרים חסומים</div>
+            </div>
+        </div>
+
+        <!-- Bots Table -->
+        <div class="bg-gray-800 rounded-lg p-6 mb-8">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">בוטים</h2>
+                <button onclick="openAddBot()" class="bg-emerald-500 hover:bg-emerald-600 px-4 py-2 rounded-lg">
+                    + הוסף בוט
+                </button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="text-gray-400 text-right border-b border-gray-700">
+                            <th class="pb-3">מספר טלפון</th>
+                            <th class="pb-3">שם</th>
+                            <th class="pb-3">סטטוס</th>
+                            <th class="pb-3">מצב גישה</th>
+                            <th class="pb-3">הודעות</th>
+                            <th class="pb-3">פעולות</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bots-table">
+                        <tr><td colspan="6" class="text-center py-8 text-gray-500">טוען...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Add/Edit Bot Modal -->
+        <div id="bot-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+            <div class="bg-gray-800 rounded-lg p-6 w-full max-w-lg mx-4">
+                <h3 class="text-xl font-bold mb-4" id="modal-title">הוסף בוט</h3>
+                <form id="bot-form" class="space-y-4">
+                    <input type="hidden" id="bot-id">
+                    <div>
+                        <label class="block text-gray-400 mb-1">מספר טלפון</label>
+                        <input type="text" id="bot-phone" class="w-full bg-gray-700 rounded px-4 py-2" placeholder="972524039934" required>
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">שם הבוט</label>
+                        <input type="text" id="bot-name" class="w-full bg-gray-700 rounded px-4 py-2" placeholder="הבוט שלי">
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">Webhook URL (n8n)</label>
+                        <input type="url" id="bot-webhook" class="w-full bg-gray-700 rounded px-4 py-2" placeholder="https://n8n.example.com/webhook/xxx">
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">מצב גישה</label>
+                        <select id="bot-access" class="w-full bg-gray-700 rounded px-4 py-2">
+                            <option value="everyone">כולם</option>
+                            <option value="whitelist">רשימה לבנה</option>
+                            <option value="dynamic">שאילתה דינאמית</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">השהיה (שניות)</label>
+                        <input type="number" id="bot-delay" class="w-full bg-gray-700 rounded px-4 py-2" value="0" min="0">
+                    </div>
+                    <div class="flex gap-2 pt-4">
+                        <button type="submit" class="flex-1 bg-emerald-500 hover:bg-emerald-600 py-2 rounded-lg">שמור</button>
+                        <button type="button" onclick="closeModal()" class="flex-1 bg-gray-600 hover:bg-gray-500 py-2 rounded-lg">ביטול</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Blocked Numbers Section -->
+        <div class="bg-gray-800 rounded-lg p-6">
+            <h2 class="text-xl font-bold mb-4">מספרים חסומים (גלובלי)</h2>
+            <div class="flex gap-2 mb-4">
+                <input type="text" id="block-phone" class="flex-1 bg-gray-700 rounded px-4 py-2" placeholder="מספר לחסימה...">
+                <button onclick="blockNumber()" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-lg">חסום</button>
+            </div>
+            <div id="blocked-list" class="space-y-2 max-h-64 overflow-y-auto"></div>
+        </div>
+    </div>
+
+    <script>
+        const API = '';
+
+        async function loadStats() {
+            try {
+                const res = await fetch(`${API}/api/admin/stats`);
+                const data = await res.json();
+                document.getElementById('stat-bots').textContent = data.bots;
+                document.getElementById('stat-messages').textContent = data.today_messages;
+                document.getElementById('stat-total').textContent = data.total_messages;
+                document.getElementById('stat-blocked').textContent = data.blocked_numbers;
+            } catch (e) {
+                console.error('Failed to load stats:', e);
+            }
+        }
+
+        async function loadBots() {
+            try {
+                const res = await fetch(`${API}/api/admin/bots-overview`);
+                const bots = await res.json();
+                const tbody = document.getElementById('bots-table');
+                
+                if (bots.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-500">אין בוטים. הוסף את הבוט הראשון!</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = bots.map(bot => `
+                    <tr class="border-b border-gray-700">
+                        <td class="py-3 font-mono">${bot.phone_number}</td>
+                        <td class="py-3">${bot.name || '-'}</td>
+                        <td class="py-3">
+                            <span class="px-2 py-1 rounded text-sm ${bot.status === 'active' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}">
+                                ${bot.status === 'active' ? 'פעיל' : 'כבוי'}
+                            </span>
+                        </td>
+                        <td class="py-3">${{everyone: 'כולם', whitelist: 'רשימה לבנה', dynamic: 'דינאמי'}[bot.access_mode] || bot.access_mode}</td>
+                        <td class="py-3">${bot.message_count}</td>
+                        <td class="py-3">
+                            <button onclick="toggleBot(${bot.id})" class="text-yellow-400 hover:text-yellow-300 ml-2">⏻</button>
+                            <button onclick="editBot(${bot.id})" class="text-blue-400 hover:text-blue-300 ml-2">✏️</button>
+                            <button onclick="deleteBot(${bot.id})" class="text-red-400 hover:text-red-300">🗑️</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (e) {
+                console.error('Failed to load bots:', e);
+            }
+        }
+
+        async function loadBlocked() {
+            try {
+                const res = await fetch(`${API}/api/blocked`);
+                const blocked = await res.json();
+                const list = document.getElementById('blocked-list');
+                
+                if (blocked.length === 0) {
+                    list.innerHTML = '<div class="text-gray-500">אין מספרים חסומים</div>';
+                    return;
+                }
+
+                list.innerHTML = blocked.map(b => `
+                    <div class="flex justify-between items-center bg-gray-700 rounded px-3 py-2">
+                        <span class="font-mono">${b.phone}</span>
+                        <button onclick="unblockNumber('${b.phone}')" class="text-red-400 hover:text-red-300">הסר</button>
+                    </div>
+                `).join('');
+            } catch (e) {
+                console.error('Failed to load blocked:', e);
+            }
+        }
+
+        function openAddBot() {
+            document.getElementById('modal-title').textContent = 'הוסף בוט';
+            document.getElementById('bot-form').reset();
+            document.getElementById('bot-id').value = '';
+            document.getElementById('bot-modal').classList.remove('hidden');
+            document.getElementById('bot-modal').classList.add('flex');
+        }
+
+        function closeModal() {
+            document.getElementById('bot-modal').classList.add('hidden');
+            document.getElementById('bot-modal').classList.remove('flex');
+        }
+
+        async function editBot(id) {
+            const res = await fetch(`${API}/api/bots/${id}`);
+            const bot = await res.json();
+            
+            document.getElementById('modal-title').textContent = 'ערוך בוט';
+            document.getElementById('bot-id').value = bot.id;
+            document.getElementById('bot-phone').value = bot.phone_number;
+            document.getElementById('bot-name').value = bot.name || '';
+            document.getElementById('bot-webhook').value = bot.n8n_webhook_url || '';
+            document.getElementById('bot-access').value = bot.access_mode;
+            document.getElementById('bot-delay').value = bot.delay_seconds || 0;
+            
+            document.getElementById('bot-modal').classList.remove('hidden');
+            document.getElementById('bot-modal').classList.add('flex');
+        }
+
+        document.getElementById('bot-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('bot-id').value;
+            const data = {
+                phone_number: document.getElementById('bot-phone').value,
+                name: document.getElementById('bot-name').value,
+                n8n_webhook_url: document.getElementById('bot-webhook').value,
+                access_mode: document.getElementById('bot-access').value,
+                delay_seconds: parseInt(document.getElementById('bot-delay').value) || 0
+            };
+
+            const url = id ? `${API}/api/bots/${id}` : `${API}/api/bots`;
+            const method = id ? 'PUT' : 'POST';
+
+            await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            closeModal();
+            loadBots();
+            loadStats();
+        });
+
+        async function toggleBot(id) {
+            await fetch(`${API}/api/bots/${id}/toggle`, { method: 'PATCH' });
+            loadBots();
+        }
+
+        async function deleteBot(id) {
+            if (!confirm('למחוק את הבוט?')) return;
+            await fetch(`${API}/api/bots/${id}`, { method: 'DELETE' });
+            loadBots();
+            loadStats();
+        }
+
+        async function blockNumber() {
+            const phone = document.getElementById('block-phone').value.trim();
+            if (!phone) return;
+            
+            await fetch(`${API}/api/blocked`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone })
+            });
+            
+            document.getElementById('block-phone').value = '';
+            loadBlocked();
+            loadStats();
+        }
+
+        async function unblockNumber(phone) {
+            await fetch(`${API}/api/blocked/${phone}`, { method: 'DELETE' });
+            loadBlocked();
+            loadStats();
+        }
+
+        // Initial load
+        loadStats();
+        loadBots();
+        loadBlocked();
+
+        // Auto refresh every 30 seconds
+        setInterval(() => {
+            loadStats();
+            loadBots();
+        }, 30000);
+    </script>
+</body>
+</html>
