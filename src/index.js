@@ -30,7 +30,7 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static files
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Serve builder React app
+// Serve builder app
 app.use('/builder', express.static(path.join(__dirname, '../public/builder')));
 
 // Health check
@@ -48,10 +48,6 @@ app.use('/api/n8n', n8nRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/flows', flowsRoutes);
 
-// Builder SPA catch-all (for client-side routing)
-app.get('/builder/*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/builder/index.html'));
-});
 
 // Error handler
 app.use((err, req, res, next) => {

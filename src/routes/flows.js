@@ -6,7 +6,7 @@ const { query } = require('../db');
 router.get('/', async (req, res, next) => {
     try {
         const result = await query(`
-            SELECT f.*, b.phone_number as bot_phone
+            SELECT f.*, f.type as flow_type, b.phone_number as bot_phone
             FROM flows f
             LEFT JOIN bots b ON f.bot_id = b.id
             ORDER BY f.updated_at DESC
@@ -40,10 +40,29 @@ router.get('/:id', async (req, res, next) => {
             [req.params.id]
         );
 
+        // Transform nodes/edges to ReactFlow format
+        const nodes = nodesResult.rows.map(n => ({
+            id: n.node_id,
+            type: n.subtype || n.type,
+            position: { x: n.position_x, y: n.position_y },
+            data: { label: n.label, ...(n.config || {}) }
+        }));
+
+        const edges = edgesResult.rows.map(e => ({
+            id: e.edge_id,
+            source: e.source_node_id,
+            sourceHandle: e.source_handle,
+            target: e.target_node_id,
+            targetHandle: e.target_handle,
+            label: e.label,
+            type: 'smoothstep',
+            animated: true
+        }));
+
         res.json({
             ...flowResult.rows[0],
-            nodes: nodesResult.rows,
-            edges: edgesResult.rows,
+            flow_type: flowResult.rows[0].type,
+            canvas_data: { nodes, edges },
             variables: variablesResult.rows
         });
     } catch (error) {
@@ -54,7 +73,8 @@ router.get('/:id', async (req, res, next) => {
 // Create new flow
 router.post('/', async (req, res, next) => {
     try {
-        const { name, description, type, bot_id, config } = req.body;
+        const { name, description, type, flow_type, bot_id, config } = req.body;
+        const flowType = flow_type || type || 'raffle';
 
         if (!name) {
             return res.status(400).json({ error: 'name is required' });
@@ -64,10 +84,10 @@ router.post('/', async (req, res, next) => {
             `INSERT INTO flows (name, description, type, bot_id, config)
              VALUES ($1, $2, $3, $4, $5)
              RETURNING *`,
-            [name, description || null, type || 'raffle', bot_id || null, config || {}]
+            [name, description || null, flowType, bot_id || null, config || {}]
         );
 
-        res.status(201).json(result.rows[0]);
+        res.status(201).json({ ...result.rows[0], flow_type: result.rows[0].type });
     } catch (error) {
         next(error);
     }
@@ -114,8 +134,16 @@ router.delete('/:id', async (req, res, next) => {
     }
 });
 
-// Save flow canvas (nodes + edges)
+// Save flow canvas (nodes + edges) - support both POST and PUT
+router.put('/:id/canvas', async (req, res, next) => {
+    return saveCanvas(req, res, next);
+});
+
 router.post('/:id/canvas', async (req, res, next) => {
+    return saveCanvas(req, res, next);
+});
+
+async function saveCanvas(req, res, next) {
     try {
         const { nodes, edges } = req.body;
         const flowId = req.params.id;
@@ -169,7 +197,7 @@ router.post('/:id/canvas', async (req, res, next) => {
     } catch (error) {
         next(error);
     }
-});
+}
 
 // Get flow variables
 router.get('/:id/variables', async (req, res, next) => {

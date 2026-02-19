@@ -1,14 +1,562 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/builder/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
-    <script type="module" crossorigin src="/builder/assets/index-D3TMOkhm.js"></script>
-    <link rel="stylesheet" crossorigin href="/builder/assets/index-CYi4E5TH.css">
-  </head>
-  <body>
-    <div id="root"></div>
-  </body>
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>בונה תהליכים</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Heebo', sans-serif;
+      background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+      min-height: 100vh;
+      direction: rtl;
+    }
+    
+    .header {
+      background: white;
+      padding: 1rem 2rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header h1 {
+      font-size: 1.5rem;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .header h1 i { color: #6366f1; }
+    
+    .btn {
+      padding: 0.6rem 1.2rem;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4); }
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #475569;
+    }
+    .btn-secondary:hover { background: #e2e8f0; }
+    .btn-danger { background: #fee2e2; color: #dc2626; }
+    .btn-danger:hover { background: #fecaca; }
+    .btn-success { background: #dcfce7; color: #16a34a; }
+    .btn-success:hover { background: #bbf7d0; }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    
+    .hero {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
+      border-radius: 20px;
+      padding: 2rem;
+      color: white;
+      margin-bottom: 2rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 300px;
+      height: 300px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 50%;
+    }
+    .hero h2 {
+      font-size: 1.75rem;
+      margin-bottom: 0.5rem;
+      position: relative;
+    }
+    .hero p {
+      opacity: 0.9;
+      position: relative;
+    }
+    .hero-stats {
+      display: flex;
+      gap: 2rem;
+      margin-top: 1.5rem;
+      position: relative;
+    }
+    .hero-stat {
+      text-align: center;
+    }
+    .hero-stat .num {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+    .hero-stat .label {
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+    
+    .flows-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.5rem;
+    }
+    
+    .flow-card {
+      background: white;
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      border: 2px solid transparent;
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+    .flow-card:hover {
+      border-color: #6366f1;
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.15);
+    }
+    .flow-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .flow-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.25rem;
+    }
+    .flow-icon.inactive {
+      background: #e2e8f0;
+      color: #94a3b8;
+    }
+    .flow-status {
+      padding: 0.35rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .flow-status.active { background: #dcfce7; color: #16a34a; }
+    .flow-status.inactive { background: #f1f5f9; color: #64748b; }
+    
+    .flow-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 0.25rem;
+    }
+    .flow-type {
+      font-size: 0.85rem;
+      color: #64748b;
+    }
+    
+    .flow-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid #f1f5f9;
+    }
+    .flow-actions .btn {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.85rem;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .empty-state i {
+      font-size: 4rem;
+      color: #c7d2fe;
+      margin-bottom: 1rem;
+    }
+    .empty-state h3 {
+      color: #1e293b;
+      margin-bottom: 0.5rem;
+    }
+    .empty-state p {
+      color: #64748b;
+      margin-bottom: 1.5rem;
+    }
+    
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s;
+    }
+    .modal-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+    .modal {
+      background: white;
+      border-radius: 20px;
+      padding: 2rem;
+      width: 90%;
+      max-width: 500px;
+      transform: scale(0.9);
+      transition: transform 0.3s;
+    }
+    .modal-overlay.show .modal {
+      transform: scale(1);
+    }
+    .modal h2 {
+      font-size: 1.25rem;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .modal h2 i { color: #6366f1; }
+    
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 0.5rem;
+    }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 1rem;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus {
+      outline: none;
+      border-color: #6366f1;
+    }
+    
+    .modal-actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+    .modal-actions .btn { flex: 1; justify-content: center; }
+    
+    .add-card {
+      background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+      border: 3px dashed #cbd5e1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+      color: #64748b;
+    }
+    .add-card:hover {
+      border-color: #6366f1;
+      background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+      color: #6366f1;
+    }
+    .add-card i {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .add-card span {
+      font-weight: 600;
+    }
+    
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem;
+    }
+    .loading i {
+      font-size: 2rem;
+      color: #6366f1;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1><i class="fa-solid fa-diagram-project"></i> בונה תהליכים</h1>
+    <div style="display: flex; gap: 0.75rem;">
+      <a href="/" class="btn btn-secondary"><i class="fa-solid fa-arrow-right"></i> חזרה לניהול</a>
+      <button class="btn btn-primary" onclick="openCreateModal()"><i class="fa-solid fa-plus"></i> תהליך חדש</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="hero">
+      <h2><i class="fa-solid fa-trophy"></i> תהליכי הגרלה</h2>
+      <p>בנה תהליכים אוטומטיים בקלות</p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="num" id="total-flows">0</div>
+          <div class="label">תהליכים</div>
+        </div>
+        <div class="hero-stat">
+          <div class="num" id="active-flows">0</div>
+          <div class="label">פעילים</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="flows-container" class="flows-grid">
+      <div class="loading"><i class="fa-solid fa-spinner"></i></div>
+    </div>
+  </div>
+
+  <!-- Create Modal -->
+  <div id="create-modal" class="modal-overlay" onclick="closeCreateModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <h2><i class="fa-solid fa-plus-circle"></i> יצירת תהליך חדש</h2>
+      <div class="form-group">
+        <label>שם התהליך</label>
+        <input type="text" id="flow-name" placeholder="לדוגמה: הגרלת חודש פברואר">
+      </div>
+      <div class="form-group">
+        <label>סוג התהליך</label>
+        <select id="flow-type">
+          <option value="raffle">הגרלה</option>
+          <option value="campaign">קמפיין</option>
+          <option value="support">תמיכה</option>
+          <option value="custom">מותאם אישית</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeCreateModal()">ביטול</button>
+        <button class="btn btn-primary" onclick="createFlow()">צור תהליך</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div id="delete-modal" class="modal-overlay" onclick="closeDeleteModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <h2><i class="fa-solid fa-trash" style="color: #dc2626;"></i> מחיקת תהליך</h2>
+      <p style="color: #64748b; margin-bottom: 1rem;">האם אתה בטוח שברצונך למחוק את התהליך <strong id="delete-flow-name"></strong>?</p>
+      <p style="color: #dc2626; font-size: 0.9rem;">פעולה זו לא ניתנת לביטול!</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeDeleteModal()">ביטול</button>
+        <button class="btn btn-danger" onclick="confirmDelete()">מחק לצמיתות</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let flows = [];
+    let deleteTargetId = null;
+
+    async function loadFlows() {
+      try {
+        const res = await fetch('/api/flows');
+        flows = await res.json();
+        renderFlows();
+        updateStats();
+      } catch (err) {
+        console.error('Failed to load flows:', err);
+        document.getElementById('flows-container').innerHTML = `
+          <div class="empty-state" style="grid-column: 1/-1;">
+            <i class="fa-solid fa-exclamation-triangle"></i>
+            <h3>שגיאה בטעינת תהליכים</h3>
+            <p>נסה לרענן את הדף</p>
+          </div>
+        `;
+      }
+    }
+
+    function renderFlows() {
+      const container = document.getElementById('flows-container');
+      
+      if (flows.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state" style="grid-column: 1/-1;">
+            <i class="fa-solid fa-diagram-project"></i>
+            <h3>אין תהליכים עדיין</h3>
+            <p>צור את התהליך הראשון שלך</p>
+            <button class="btn btn-primary" onclick="openCreateModal()">
+              <i class="fa-solid fa-plus"></i> צור תהליך ראשון
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      const typeLabels = {
+        raffle: 'הגרלה',
+        campaign: 'קמפיין',
+        support: 'תמיכה',
+        custom: 'מותאם אישית'
+      };
+
+      container.innerHTML = flows.map(flow => `
+        <div class="flow-card" onclick="openFlow('${flow.id}')">
+          <div class="flow-card-header">
+            <div class="flow-icon ${flow.is_active ? '' : 'inactive'}">
+              <i class="fa-solid fa-diagram-project"></i>
+            </div>
+            <span class="flow-status ${flow.is_active ? 'active' : 'inactive'}">
+              ${flow.is_active ? '● פעיל' : '○ כבוי'}
+            </span>
+          </div>
+          <div class="flow-name">${escapeHtml(flow.name)}</div>
+          <div class="flow-type">${typeLabels[flow.flow_type] || flow.flow_type}</div>
+          <div class="flow-actions" onclick="event.stopPropagation()">
+            <button class="btn ${flow.is_active ? 'btn-secondary' : 'btn-success'}" onclick="toggleFlow('${flow.id}', ${flow.is_active})">
+              <i class="fa-solid ${flow.is_active ? 'fa-pause' : 'fa-play'}"></i>
+              ${flow.is_active ? 'השהה' : 'הפעל'}
+            </button>
+            <button class="btn btn-secondary" onclick="openFlow('${flow.id}')">
+              <i class="fa-solid fa-edit"></i> עריכה
+            </button>
+            <button class="btn btn-danger" onclick="openDeleteModal('${flow.id}', '${escapeHtml(flow.name)}')">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      `).join('') + `
+        <div class="flow-card add-card" onclick="openCreateModal()">
+          <i class="fa-solid fa-plus"></i>
+          <span>תהליך חדש</span>
+        </div>
+      `;
+    }
+
+    function updateStats() {
+      document.getElementById('total-flows').textContent = flows.length;
+      document.getElementById('active-flows').textContent = flows.filter(f => f.is_active).length;
+    }
+
+    function openCreateModal() {
+      document.getElementById('create-modal').classList.add('show');
+      document.getElementById('flow-name').focus();
+    }
+
+    function closeCreateModal(e) {
+      if (e && e.target !== e.currentTarget) return;
+      document.getElementById('create-modal').classList.remove('show');
+      document.getElementById('flow-name').value = '';
+    }
+
+    async function createFlow() {
+      const name = document.getElementById('flow-name').value.trim();
+      const flowType = document.getElementById('flow-type').value;
+      
+      if (!name) {
+        alert('נא להזין שם לתהליך');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/flows', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, flow_type: flowType })
+        });
+        
+        if (!res.ok) throw new Error('Failed to create flow');
+        
+        const flow = await res.json();
+        closeCreateModal();
+        openFlow(flow.id);
+      } catch (err) {
+        alert('שגיאה ביצירת תהליך');
+      }
+    }
+
+    async function toggleFlow(id, currentState) {
+      try {
+        await fetch(`/api/flows/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_active: !currentState })
+        });
+        loadFlows();
+      } catch (err) {
+        alert('שגיאה בעדכון תהליך');
+      }
+    }
+
+    function openFlow(id) {
+      window.location.href = `/builder/editor.html?id=${id}`;
+    }
+
+    function openDeleteModal(id, name) {
+      deleteTargetId = id;
+      document.getElementById('delete-flow-name').textContent = name;
+      document.getElementById('delete-modal').classList.add('show');
+    }
+
+    function closeDeleteModal(e) {
+      if (e && e.target !== e.currentTarget) return;
+      document.getElementById('delete-modal').classList.remove('show');
+      deleteTargetId = null;
+    }
+
+    async function confirmDelete() {
+      if (!deleteTargetId) return;
+      
+      try {
+        await fetch(`/api/flows/${deleteTargetId}`, { method: 'DELETE' });
+        closeDeleteModal();
+        loadFlows();
+      } catch (err) {
+        alert('שגיאה במחיקת תהליך');
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Init
+    loadFlows();
+
+    // Enter key for create
+    document.getElementById('flow-name').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') createFlow();
+    });
+  </script>
+</body>
 </html>

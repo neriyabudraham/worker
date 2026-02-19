@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>עריכת תהליך</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Heebo', sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .header {
+      background: white;
+      padding: 0.75rem 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+      flex-shrink: 0;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .header h1 {
+      font-size: 1.25rem;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .header h1 i { color: #6366f1; }
+    .flow-name-input {
+      font-size: 1.25rem;
+      font-weight: 700;
+      border: none;
+      background: transparent;
+      color: #1e293b;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      max-width: 300px;
+    }
+    .flow-name-input:hover { background: #f1f5f9; }
+    .flow-name-input:focus { outline: none; background: #e0e7ff; }
+    
+    .status-badge {
+      padding: 0.35rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .status-badge.active { background: #dcfce7; color: #16a34a; }
+    .status-badge.inactive { background: #f1f5f9; color: #64748b; }
+    .status-badge.unsaved { background: #fef3c7; color: #d97706; }
+    
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.875rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #475569;
+    }
+    .btn-secondary:hover { background: #e2e8f0; }
+    .btn-success { background: #dcfce7; color: #16a34a; }
+    .btn-success:hover { background: #bbf7d0; }
+    
+    .main-content {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    
+    /* Sidebar - Node Palette */
+    .sidebar {
+      width: 280px;
+      background: white;
+      border-left: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .sidebar-header {
+      padding: 1rem;
+      border-bottom: 1px solid #e2e8f0;
+      font-weight: 600;
+      color: #374151;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .sidebar-header i { color: #6366f1; }
+    
+    .node-palette {
+      padding: 1rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .node-category {
+      margin-bottom: 1.5rem;
+    }
+    .node-category-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+    .node-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      background: #f8fafc;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      margin-bottom: 0.5rem;
+      cursor: grab;
+      transition: all 0.2s;
+    }
+    .node-item:hover {
+      border-color: #6366f1;
+      background: #eef2ff;
+    }
+    .node-item:active { cursor: grabbing; }
+    .node-item-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.9rem;
+    }
+    .node-item-info {
+      flex: 1;
+    }
+    .node-item-name {
+      font-weight: 600;
+      color: #1e293b;
+      font-size: 0.9rem;
+    }
+    .node-item-desc {
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+    
+    /* Canvas */
+    .canvas-container {
+      flex: 1;
+      background: #f8fafc;
+      position: relative;
+    }
+    #flow-canvas {
+      width: 100%;
+      height: 100%;
+    }
+    
+    /* Right Panel - Node Editor */
+    .editor-panel {
+      width: 320px;
+      background: white;
+      border-right: 1px solid #e2e8f0;
+      display: none;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .editor-panel.show { display: flex; }
+    .editor-header {
+      padding: 1rem;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .editor-header h3 {
+      font-size: 1rem;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .editor-close {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      padding: 0.25rem;
+      border-radius: 6px;
+    }
+    .editor-close:hover { background: #f1f5f9; color: #64748b; }
+    
+    .editor-content {
+      padding: 1rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 0.4rem;
+      font-size: 0.85rem;
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none;
+      border-color: #6366f1;
+    }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    
+    .editor-actions {
+      padding: 1rem;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      gap: 0.5rem;
+    }
+    .editor-actions .btn { flex: 1; justify-content: center; }
+    
+    /* ReactFlow Custom Styles */
+    .react-flow__node {
+      border-radius: 12px;
+      padding: 12px 16px;
+      min-width: 180px;
+      font-family: 'Heebo', sans-serif;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border: 2px solid transparent;
+    }
+    .react-flow__node.selected {
+      border-color: #6366f1;
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+    }
+    .react-flow__node-trigger {
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      border-color: #f59e0b;
+    }
+    .react-flow__node-message {
+      background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+      border-color: #3b82f6;
+    }
+    .react-flow__node-condition {
+      background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+      border-color: #6366f1;
+    }
+    .react-flow__node-action {
+      background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+      border-color: #22c55e;
+    }
+    .react-flow__node-delay {
+      background: linear-gradient(135deg, #fce7f3, #fbcfe8);
+      border-color: #ec4899;
+    }
+    .react-flow__node-database {
+      background: linear-gradient(135deg, #f3e8ff, #e9d5ff);
+      border-color: #a855f7;
+    }
+    
+    .node-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .node-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 0.8rem;
+    }
+    .node-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #1e293b;
+    }
+    .node-content {
+      font-size: 0.8rem;
+      color: #64748b;
+      max-width: 200px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .react-flow__handle {
+      width: 12px;
+      height: 12px;
+      border: 2px solid white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .react-flow__handle-left { left: -6px; }
+    .react-flow__handle-right { right: -6px; }
+    
+    .react-flow__edge-path {
+      stroke-width: 2;
+    }
+    
+    .react-flow__controls {
+      left: 10px;
+      right: auto;
+    }
+    
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .loading-overlay.hide { display: none; }
+    .loading-overlay i {
+      font-size: 3rem;
+      color: #6366f1;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="loading-overlay" id="loading">
+    <i class="fa-solid fa-spinner"></i>
+  </div>
+
+  <div class="header">
+    <div class="header-right">
+      <a href="/builder/" class="btn btn-secondary"><i class="fa-solid fa-arrow-right"></i></a>
+      <i class="fa-solid fa-diagram-project" style="color: #6366f1; font-size: 1.25rem;"></i>
+      <input type="text" class="flow-name-input" id="flow-name" value="טוען..." onchange="markUnsaved()">
+      <span class="status-badge" id="status-badge">טוען</span>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+      <button class="btn btn-secondary" id="toggle-btn" onclick="toggleFlowActive()">
+        <i class="fa-solid fa-play"></i> הפעל
+      </button>
+      <button class="btn btn-primary" id="save-btn" onclick="saveFlow()" disabled>
+        <i class="fa-solid fa-save"></i> שמור
+      </button>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <!-- Left Sidebar - Node Palette -->
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <i class="fa-solid fa-shapes"></i> רכיבים
+      </div>
+      <div class="node-palette">
+        <div class="node-category">
+          <div class="node-category-title">התחלה</div>
+          <div class="node-item" draggable="true" data-type="trigger">
+            <div class="node-item-icon" style="background: #f59e0b;"><i class="fa-solid fa-bolt"></i></div>
+            <div class="node-item-info">
+              <div class="node-item-name">טריגר</div>
+              <div class="node-item-desc">התחלת התהליך</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="node-category">
+          <div class="node-category-title">תקשורת</div>
+          <div class="node-item" draggable="true" data-type="message">
+            <div class="node-item-icon" style="background: #3b82f6;"><i class="fa-solid fa-message"></i></div>
+            <div class="node-item-info">
+              <div class="node-item-name">הודעה</div>
+              <div class="node-item-desc">שלח הודעת וואטסאפ</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="node-category">
+          <div class="node-category-title">לוגיקה</div>
+          <div class="node-item" draggable="true" data-type="condition">
+            <div class="node-item-icon" style="background: #6366f1;"><i class="fa-solid fa-code-branch"></i></div>
+            <div class="node-item-info">
+              <div class="node-item-name">תנאי</div>
+              <div class="node-item-desc">הסתעפות לפי תנאי</div>
+            </div>
+          </div>
+          <div class="node-item" draggable="true" data-type="delay">
+            <div class="node-item-icon" style="background: #ec4899;"><i class="fa-solid fa-clock"></i></div>
+            <div class="node-item-info">
+              <div class="node-item-name">השהייה</div>
+              <div class="node-item-desc">המתנה לפני המשך</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="node-category">
+          <div class="node-category-title">פעולות</div>
+          <div class="node-item" draggable="true" data-type="action">
+            <div class="node-item-icon" style="background: #22c55e;"><i class="fa-solid fa-cog"></i></div>
+            <div class="node-item-info">
+              <div class="node-item-name">פעולה</div>
+              <div class="node-item-desc">הוספת תג, משתנה</div>
+            </div>
+          </div>
+          <div class="node-item" draggable="true" data-type="database">
+            <div class="node-item-icon" style="background: #a855f7;"><i class="fa-solid fa-database"></i></div>
+            <div class="node-item-info">
+              <div class="node-item-name">מסד נתונים</div>
+              <div class="node-item-desc">שאילתת SQL / הגרלה</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Canvas -->
+    <div class="canvas-container">
+      <div id="flow-canvas"></div>
+    </div>
+
+    <!-- Right Panel - Node Editor -->
+    <div class="editor-panel" id="editor-panel">
+      <div class="editor-header">
+        <h3><i class="fa-solid fa-edit"></i> <span id="editor-title">עריכת רכיב</span></h3>
+        <button class="editor-close" onclick="closeEditor()"><i class="fa-solid fa-times"></i></button>
+      </div>
+      <div class="editor-content" id="editor-content">
+        <!-- Dynamic content -->
+      </div>
+      <div class="editor-actions">
+        <button class="btn btn-secondary" onclick="deleteSelectedNode()"><i class="fa-solid fa-trash"></i> מחק</button>
+        <button class="btn btn-primary" onclick="applyNodeChanges()"><i class="fa-solid fa-check"></i> החל</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ReactFlow -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@xyflow/react@12/dist/umd/index.js"></script>
+  <link href="https://unpkg.com/@xyflow/react@12/dist/style.css" rel="stylesheet">
+  
+  <script>
+    const { useState, useCallback, useRef, useEffect } = React;
+    const { ReactFlow, Controls, Background, addEdge, applyNodeChanges: applyRFNodeChanges, applyEdgeChanges, MarkerType } = window.xyflowReact;
+
+    let flowId = null;
+    let flowData = null;
+    let hasUnsaved = false;
+    let reactFlowInstance = null;
+    let selectedNodeId = null;
+    let nodesState = [];
+    let edgesState = [];
+    let setNodesFunc = null;
+    let setEdgesFunc = null;
+
+    // Get flow ID from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    flowId = urlParams.get('id');
+
+    if (!flowId) {
+      window.location.href = '/builder/';
+    }
+
+    // Load flow data
+    async function loadFlow() {
+      try {
+        const res = await fetch(`/api/flows/${flowId}`);
+        if (!res.ok) throw new Error('Flow not found');
+        flowData = await res.json();
+        
+        document.getElementById('flow-name').value = flowData.name;
+        updateStatusBadge();
+        updateToggleButton();
+        
+        // Load canvas data
+        if (flowData.canvas_data) {
+          nodesState = flowData.canvas_data.nodes || [];
+          edgesState = flowData.canvas_data.edges || [];
+        }
+        
+        document.getElementById('loading').classList.add('hide');
+        renderReactFlow();
+      } catch (err) {
+        console.error(err);
+        alert('שגיאה בטעינת התהליך');
+        window.location.href = '/builder/';
+      }
+    }
+
+    function updateStatusBadge() {
+      const badge = document.getElementById('status-badge');
+      if (hasUnsaved) {
+        badge.textContent = '● שינויים לא שמורים';
+        badge.className = 'status-badge unsaved';
+      } else if (flowData.is_active) {
+        badge.textContent = '● פעיל';
+        badge.className = 'status-badge active';
+      } else {
+        badge.textContent = '○ כבוי';
+        badge.className = 'status-badge inactive';
+      }
+    }
+
+    function updateToggleButton() {
+      const btn = document.getElementById('toggle-btn');
+      if (flowData.is_active) {
+        btn.innerHTML = '<i class="fa-solid fa-pause"></i> השהה';
+        btn.classList.remove('btn-success');
+        btn.classList.add('btn-secondary');
+      } else {
+        btn.innerHTML = '<i class="fa-solid fa-play"></i> הפעל';
+        btn.classList.remove('btn-secondary');
+        btn.classList.add('btn-success');
+      }
+    }
+
+    function markUnsaved() {
+      hasUnsaved = true;
+      updateStatusBadge();
+      document.getElementById('save-btn').disabled = false;
+    }
+
+    async function saveFlow() {
+      try {
+        // Update name
+        const newName = document.getElementById('flow-name').value.trim();
+        if (newName !== flowData.name) {
+          await fetch(`/api/flows/${flowId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: newName })
+          });
+          flowData.name = newName;
+        }
+        
+        // Save canvas
+        await fetch(`/api/flows/${flowId}/canvas`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nodes: nodesState,
+            edges: edgesState
+          })
+        });
+        
+        hasUnsaved = false;
+        updateStatusBadge();
+        document.getElementById('save-btn').disabled = true;
+      } catch (err) {
+        alert('שגיאה בשמירה');
+      }
+    }
+
+    async function toggleFlowActive() {
+      try {
+        const newState = !flowData.is_active;
+        await fetch(`/api/flows/${flowId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_active: newState })
+        });
+        flowData.is_active = newState;
+        updateStatusBadge();
+        updateToggleButton();
+      } catch (err) {
+        alert('שגיאה בעדכון');
+      }
+    }
+
+    // Node type configs
+    const nodeTypeConfigs = {
+      trigger: { icon: 'fa-bolt', color: '#f59e0b', title: 'טריגר' },
+      message: { icon: 'fa-message', color: '#3b82f6', title: 'הודעה' },
+      condition: { icon: 'fa-code-branch', color: '#6366f1', title: 'תנאי' },
+      delay: { icon: 'fa-clock', color: '#ec4899', title: 'השהייה' },
+      action: { icon: 'fa-cog', color: '#22c55e', title: 'פעולה' },
+      database: { icon: 'fa-database', color: '#a855f7', title: 'מסד נתונים' }
+    };
+
+    function getDefaultNodeData(type) {
+      switch(type) {
+        case 'trigger':
+          return { triggerType: 'message', keyword: '' };
+        case 'message':
+          return { text: '', buttons: [] };
+        case 'condition':
+          return { conditions: [{ variable: '', operator: 'equals', value: '' }] };
+        case 'delay':
+          return { duration: 1, unit: 'seconds' };
+        case 'action':
+          return { actionType: 'setVariable', variable: '', value: '' };
+        case 'database':
+          return { operation: 'addParticipant', sql: '' };
+        default:
+          return {};
+      }
+    }
+
+    function createNodeId() {
+      return 'node_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    // ReactFlow Component
+    function FlowCanvas() {
+      const [nodes, setNodes] = useState(nodesState);
+      const [edges, setEdges] = useState(edgesState);
+      const reactFlowWrapper = useRef(null);
+
+      // Store references
+      useEffect(() => {
+        setNodesFunc = setNodes;
+        setEdgesFunc = setEdges;
+      }, []);
+
+      // Sync state
+      useEffect(() => {
+        nodesState = nodes;
+      }, [nodes]);
+
+      useEffect(() => {
+        edgesState = edges;
+      }, [edges]);
+
+      const onNodesChange = useCallback((changes) => {
+        setNodes((nds) => applyRFNodeChanges(changes, nds));
+        markUnsaved();
+      }, []);
+
+      const onEdgesChange = useCallback((changes) => {
+        setEdges((eds) => applyEdgeChanges(changes, eds));
+        markUnsaved();
+      }, []);
+
+      const onConnect = useCallback((connection) => {
+        const edge = {
+          ...connection,
+          id: `edge_${Date.now()}`,
+          type: 'smoothstep',
+          animated: true,
+          markerEnd: { type: MarkerType.ArrowClosed }
+        };
+        setEdges((eds) => addEdge(edge, eds));
+        markUnsaved();
+      }, []);
+
+      const onNodeClick = useCallback((event, node) => {
+        selectedNodeId = node.id;
+        openEditor(node);
+      }, []);
+
+      const onInit = useCallback((instance) => {
+        reactFlowInstance = instance;
+      }, []);
+
+      const onDrop = useCallback((event) => {
+        event.preventDefault();
+        const type = event.dataTransfer.getData('nodeType');
+        if (!type || !reactFlowInstance) return;
+
+        const position = reactFlowInstance.screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY
+        });
+
+        const config = nodeTypeConfigs[type];
+        const newNode = {
+          id: createNodeId(),
+          type,
+          position,
+          data: {
+            label: config.title,
+            ...getDefaultNodeData(type)
+          }
+        };
+
+        setNodes((nds) => [...nds, newNode]);
+        markUnsaved();
+      }, []);
+
+      const onDragOver = useCallback((event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+      }, []);
+
+      // Custom node component
+      const CustomNode = ({ data, type }) => {
+        const config = nodeTypeConfigs[type] || {};
+        const content = getNodeContent(type, data);
+        
+        return React.createElement('div', { className: `custom-node` },
+          React.createElement('div', { className: 'node-header' },
+            React.createElement('div', { 
+              className: 'node-icon', 
+              style: { background: config.color } 
+            }, React.createElement('i', { className: `fa-solid ${config.icon}` })),
+            React.createElement('span', { className: 'node-title' }, data.label || config.title)
+          ),
+          content && React.createElement('div', { className: 'node-content' }, content)
+        );
+      };
+
+      const nodeTypes = {
+        trigger: (props) => React.createElement(CustomNode, { ...props, type: 'trigger' }),
+        message: (props) => React.createElement(CustomNode, { ...props, type: 'message' }),
+        condition: (props) => React.createElement(CustomNode, { ...props, type: 'condition' }),
+        delay: (props) => React.createElement(CustomNode, { ...props, type: 'delay' }),
+        action: (props) => React.createElement(CustomNode, { ...props, type: 'action' }),
+        database: (props) => React.createElement(CustomNode, { ...props, type: 'database' })
+      };
+
+      return React.createElement('div', { 
+        ref: reactFlowWrapper, 
+        style: { width: '100%', height: '100%' },
+        onDrop,
+        onDragOver
+      },
+        React.createElement(ReactFlow, {
+          nodes,
+          edges,
+          onNodesChange,
+          onEdgesChange,
+          onConnect,
+          onNodeClick,
+          onInit,
+          nodeTypes,
+          fitView: true,
+          snapToGrid: true,
+          snapGrid: [15, 15],
+          defaultEdgeOptions: {
+            type: 'smoothstep',
+            animated: true
+          }
+        },
+          React.createElement(Controls, { position: 'bottom-left' }),
+          React.createElement(Background, { variant: 'dots', gap: 20, size: 1 })
+        )
+      );
+    }
+
+    function getNodeContent(type, data) {
+      switch(type) {
+        case 'trigger':
+          return data.keyword ? `מילת מפתח: ${data.keyword}` : 'כל הודעה';
+        case 'message':
+          return data.text ? data.text.substring(0, 30) + '...' : 'הודעה ריקה';
+        case 'condition':
+          return data.conditions?.[0]?.variable || 'ללא תנאי';
+        case 'delay':
+          const units = { seconds: 'שניות', minutes: 'דקות', hours: 'שעות' };
+          return `${data.duration} ${units[data.unit] || data.unit}`;
+        case 'action':
+          return data.actionType === 'setVariable' ? `הגדר: ${data.variable}` : data.actionType;
+        case 'database':
+          const ops = { addParticipant: 'הוסף משתתף', addCard: 'הוסף כרטיס', query: 'שאילתה' };
+          return ops[data.operation] || data.operation;
+        default:
+          return '';
+      }
+    }
+
+    function renderReactFlow() {
+      const container = document.getElementById('flow-canvas');
+      const root = ReactDOM.createRoot(container);
+      root.render(React.createElement(FlowCanvas));
+    }
+
+    // Drag & Drop from palette
+    document.querySelectorAll('.node-item').forEach(item => {
+      item.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('nodeType', item.dataset.type);
+        e.dataTransfer.effectAllowed = 'move';
+      });
+    });
+
+    // Editor Panel
+    function openEditor(node) {
+      const panel = document.getElementById('editor-panel');
+      const title = document.getElementById('editor-title');
+      const content = document.getElementById('editor-content');
+      
+      const config = nodeTypeConfigs[node.type] || {};
+      title.innerHTML = `<i class="fa-solid ${config.icon}"></i> ${config.title}`;
+      
+      content.innerHTML = getEditorHTML(node.type, node.data);
+      panel.classList.add('show');
+    }
+
+    function closeEditor() {
+      document.getElementById('editor-panel').classList.remove('show');
+      selectedNodeId = null;
+    }
+
+    function getEditorHTML(type, data) {
+      switch(type) {
+        case 'trigger':
+          return `
+            <div class="form-group">
+              <label>סוג טריגר</label>
+              <select id="ed-triggerType">
+                <option value="message" ${data.triggerType === 'message' ? 'selected' : ''}>הודעה נכנסת</option>
+                <option value="keyword" ${data.triggerType === 'keyword' ? 'selected' : ''}>מילת מפתח</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>מילת מפתח (אופציונלי)</label>
+              <input type="text" id="ed-keyword" value="${data.keyword || ''}" placeholder="לדוגמה: הגרלה">
+            </div>
+          `;
+        case 'message':
+          return `
+            <div class="form-group">
+              <label>תוכן ההודעה</label>
+              <textarea id="ed-text" rows="4" placeholder="הזן את תוכן ההודעה...">${data.text || ''}</textarea>
+            </div>
+            <div class="form-group">
+              <label>כפתורים (שורה לכל כפתור)</label>
+              <textarea id="ed-buttons" rows="3" placeholder="כפתור 1&#10;כפתור 2">${(data.buttons || []).join('\n')}</textarea>
+            </div>
+          `;
+        case 'condition':
+          const cond = data.conditions?.[0] || {};
+          return `
+            <div class="form-group">
+              <label>משתנה</label>
+              <input type="text" id="ed-variable" value="${cond.variable || ''}" placeholder="לדוגמה: user_status">
+            </div>
+            <div class="form-group">
+              <label>אופרטור</label>
+              <select id="ed-operator">
+                <option value="equals" ${cond.operator === 'equals' ? 'selected' : ''}>שווה</option>
+                <option value="notEquals" ${cond.operator === 'notEquals' ? 'selected' : ''}>לא שווה</option>
+                <option value="contains" ${cond.operator === 'contains' ? 'selected' : ''}>מכיל</option>
+                <option value="greaterThan" ${cond.operator === 'greaterThan' ? 'selected' : ''}>גדול מ</option>
+                <option value="lessThan" ${cond.operator === 'lessThan' ? 'selected' : ''}>קטן מ</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>ערך</label>
+              <input type="text" id="ed-value" value="${cond.value || ''}" placeholder="הערך להשוואה">
+            </div>
+          `;
+        case 'delay':
+          return `
+            <div class="form-group">
+              <label>משך זמן</label>
+              <input type="number" id="ed-duration" value="${data.duration || 1}" min="1">
+            </div>
+            <div class="form-group">
+              <label>יחידה</label>
+              <select id="ed-unit">
+                <option value="seconds" ${data.unit === 'seconds' ? 'selected' : ''}>שניות</option>
+                <option value="minutes" ${data.unit === 'minutes' ? 'selected' : ''}>דקות</option>
+                <option value="hours" ${data.unit === 'hours' ? 'selected' : ''}>שעות</option>
+              </select>
+            </div>
+          `;
+        case 'action':
+          return `
+            <div class="form-group">
+              <label>סוג פעולה</label>
+              <select id="ed-actionType">
+                <option value="setVariable" ${data.actionType === 'setVariable' ? 'selected' : ''}>הגדר משתנה</option>
+                <option value="addTag" ${data.actionType === 'addTag' ? 'selected' : ''}>הוסף תג</option>
+                <option value="removeTag" ${data.actionType === 'removeTag' ? 'selected' : ''}>הסר תג</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>שם משתנה/תג</label>
+              <input type="text" id="ed-variable" value="${data.variable || ''}">
+            </div>
+            <div class="form-group">
+              <label>ערך</label>
+              <input type="text" id="ed-value" value="${data.value || ''}">
+            </div>
+          `;
+        case 'database':
+          return `
+            <div class="form-group">
+              <label>פעולה</label>
+              <select id="ed-operation">
+                <option value="addParticipant" ${data.operation === 'addParticipant' ? 'selected' : ''}>הוסף משתתף להגרלה</option>
+                <option value="addCard" ${data.operation === 'addCard' ? 'selected' : ''}>הוסף כרטיס</option>
+                <option value="query" ${data.operation === 'query' ? 'selected' : ''}>שאילתת SQL</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>שאילתה (אופציונלי)</label>
+              <textarea id="ed-sql" rows="3" placeholder="SELECT * FROM...">${data.sql || ''}</textarea>
+            </div>
+          `;
+        default:
+          return '<p>אין הגדרות זמינות</p>';
+      }
+    }
+
+    function applyNodeChanges() {
+      if (!selectedNodeId || !setNodesFunc) return;
+      
+      const node = nodesState.find(n => n.id === selectedNodeId);
+      if (!node) return;
+      
+      const newData = { ...node.data };
+      
+      switch(node.type) {
+        case 'trigger':
+          newData.triggerType = document.getElementById('ed-triggerType')?.value;
+          newData.keyword = document.getElementById('ed-keyword')?.value;
+          break;
+        case 'message':
+          newData.text = document.getElementById('ed-text')?.value;
+          const buttonsText = document.getElementById('ed-buttons')?.value || '';
+          newData.buttons = buttonsText.split('\n').filter(b => b.trim());
+          break;
+        case 'condition':
+          newData.conditions = [{
+            variable: document.getElementById('ed-variable')?.value,
+            operator: document.getElementById('ed-operator')?.value,
+            value: document.getElementById('ed-value')?.value
+          }];
+          break;
+        case 'delay':
+          newData.duration = parseInt(document.getElementById('ed-duration')?.value) || 1;
+          newData.unit = document.getElementById('ed-unit')?.value;
+          break;
+        case 'action':
+          newData.actionType = document.getElementById('ed-actionType')?.value;
+          newData.variable = document.getElementById('ed-variable')?.value;
+          newData.value = document.getElementById('ed-value')?.value;
+          break;
+        case 'database':
+          newData.operation = document.getElementById('ed-operation')?.value;
+          newData.sql = document.getElementById('ed-sql')?.value;
+          break;
+      }
+      
+      setNodesFunc(nodes => nodes.map(n => 
+        n.id === selectedNodeId ? { ...n, data: newData } : n
+      ));
+      
+      markUnsaved();
+      closeEditor();
+    }
+
+    function deleteSelectedNode() {
+      if (!selectedNodeId || !setNodesFunc || !setEdgesFunc) return;
+      
+      setNodesFunc(nodes => nodes.filter(n => n.id !== selectedNodeId));
+      setEdgesFunc(edges => edges.filter(e => 
+        e.source !== selectedNodeId && e.target !== selectedNodeId
+      ));
+      
+      markUnsaved();
+      closeEditor();
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === 's') {
+        e.preventDefault();
+        if (hasUnsaved) saveFlow();
+      }
+      if (e.key === 'Escape') {
+        closeEditor();
+      }
+      if (e.key === 'Delete' && selectedNodeId) {
+        deleteSelectedNode();
+      }
+    });
+
+    // Init
+    loadFlow();
+  </script>
+</body>
+</html>
