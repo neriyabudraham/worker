@@ -24,22 +24,33 @@ router.post('/', async (req, res) => {
 
         const payload = req.body;
         
+        console.log('[ROUTE] Webhook received, object:', payload?.object);
+        
         // Check if this is a message event
-        if (payload?.object !== 'whatsapp_business_account') return;
+        if (payload?.object !== 'whatsapp_business_account') {
+            console.log('[ROUTE] Not a WhatsApp business account event, skipping');
+            return;
+        }
         
         const messages = payload?.entry?.[0]?.changes?.[0]?.value?.messages;
-        if (!messages || messages.length === 0) return;
+        console.log('[ROUTE] Messages found:', messages?.length || 0);
+        
+        if (!messages || messages.length === 0) {
+            console.log('[ROUTE] No messages in payload, skipping');
+            return;
+        }
 
         // Process the webhook
         const result = await webhookProcessor.processWhatsAppWebhook(payload);
-        console.log('Webhook result:', result);
+        console.log('[ROUTE] Webhook result:', result.action, result.reason || '');
 
         // Trigger the workflow if approved
         if (result.action === 'approve') {
+            console.log('[ROUTE] Triggering workflow...');
             webhookProcessor.triggerWorkflow(result, payload);
         }
     } catch (error) {
-        console.error('Webhook error:', error);
+        console.error('[ROUTE] Webhook error:', error);
     }
 });
 

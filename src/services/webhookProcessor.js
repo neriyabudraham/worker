@@ -6,10 +6,17 @@ const MASTER_PHONE = process.env.MASTER_PHONE || '972584254229';
 class WebhookProcessor {
     async processWhatsAppWebhook(payload) {
         try {
+            console.log('[WEBHOOK] Processing incoming webhook...');
+            console.log('[WEBHOOK] Payload:', JSON.stringify(payload).substring(0, 500));
+
             const messageData = this.extractMessageData(payload);
             if (!messageData) {
+                console.log('[WEBHOOK] No message data extracted');
                 return { action: 'skip', reason: 'no_message_data' };
             }
+
+            console.log('[WEBHOOK] Message from:', messageData.phone, '-> Bot:', messageData.phoneBot);
+            console.log('[WEBHOOK] Message:', messageData.message?.substring(0, 100));
 
             // Log the incoming message
             await this.logMessage(messageData);
@@ -17,35 +24,43 @@ class WebhookProcessor {
             // Get bot configuration
             const bot = await this.getBotConfig(messageData.phoneBot);
             if (!bot) {
+                console.log('[WEBHOOK] No bot found for phone:', messageData.phoneBot);
                 return { action: 'stop', reason: 'no_bot' };
             }
+
+            console.log('[WEBHOOK] Bot found:', bot.id, '| Status:', bot.status, '| Workflow:', bot.workflow_id);
 
             // Check if sender is globally blocked
             const isBlocked = await this.isPhoneBlocked(messageData.phone);
             if (isBlocked) {
+                console.log('[WEBHOOK] Phone is blocked:', messageData.phone);
                 return { action: 'stop', reason: 'blocked' };
             }
 
             // Validate bot timing and status
             const validationResult = this.validateBot(bot);
             if (validationResult.action === 'stop') {
+                console.log('[WEBHOOK] Bot validation failed:', validationResult.reason);
                 return validationResult;
             }
 
             // Master phone bypass (after validation)
             if (messageData.phone === MASTER_PHONE) {
+                console.log('[WEBHOOK] Master phone bypass');
                 return this.buildApprovalResponse(bot, messageData);
             }
 
             // Check access permissions
             const accessResult = await this.checkAccess(bot, messageData.phone);
             if (accessResult.action === 'stop') {
+                console.log('[WEBHOOK] Access check failed:', accessResult.reason);
                 return accessResult;
             }
 
+            console.log('[WEBHOOK] APPROVED - triggering workflow');
             return this.buildApprovalResponse(bot, messageData);
         } catch (error) {
-            console.error('Webhook processing error:', error);
+            console.error('[WEBHOOK] Processing error:', error);
             throw error;
         }
     }
@@ -216,10 +231,16 @@ class WebhookProcessor {
     }
 
     async triggerWorkflow(result, originalPayload) {
-        if (result.action !== 'approve') return;
+        console.log('[TRIGGER] Starting workflow trigger, action:', result.action);
+        
+        if (result.action !== 'approve') {
+            console.log('[TRIGGER] Not approved, skipping');
+            return;
+        }
 
         // Apply delay if configured
         if (result.delay > 0) {
+            console.log('[TRIGGER] Applying delay:', result.delay, 'seconds');
             await this.sleep(result.delay * 1000);
         }
 
@@ -232,15 +253,22 @@ class WebhookProcessor {
         }
 
         // Trigger n8n workflow via webhook
+        console.log('[TRIGGER] Webhook URL:', result.webhookUrl);
+        console.log('[TRIGGER] Workflow ID:', result.workflowId);
+        
         if (result.webhookUrl) {
             try {
-                await axios.post(result.webhookUrl, originalPayload, {
+                console.log('[TRIGGER] Sending to n8n webhook:', result.webhookUrl);
+                const response = await axios.post(result.webhookUrl, originalPayload, {
                     timeout: 30000,
                     headers: { 'Content-Type': 'application/json' }
                 });
+                console.log('[TRIGGER] n8n response status:', response.status);
             } catch (error) {
-                console.error('n8n webhook trigger failed:', error.message);
+                console.error('[TRIGGER] n8n webhook trigger failed:', error.message);
             }
+        } else {
+            console.log('[TRIGGER] No webhook URL configured!');
         }
     }
 
