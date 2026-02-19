@@ -22,10 +22,18 @@ router.post('/', async (req, res) => {
         // Immediately respond
         res.sendStatus(200);
 
-        const payload = req.body;
+        let payload = req.body;
+        
+        // Unwrap if payload is nested in 'body' (from n8n forwarding)
+        if (payload?.body && typeof payload.body === 'object') {
+            console.log('[WEBHOOK] Unwrapping nested body...');
+            payload = payload.body;
+        }
         
         console.log('\n========== WEBHOOK RECEIVED ==========');
-        console.log('Raw payload:', JSON.stringify(payload, null, 2).substring(0, 1000));
+        console.log('From:', payload?.entry?.[0]?.changes?.[0]?.value?.contacts?.[0]?.wa_id);
+        console.log('To Bot:', payload?.entry?.[0]?.changes?.[0]?.value?.metadata?.display_phone_number);
+        console.log('Message:', payload?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.text?.body?.substring(0, 100));
         
         // Detect format: Official WhatsApp or WAHA
         let normalizedPayload = payload;
@@ -43,10 +51,10 @@ router.post('/', async (req, res) => {
             format = 'waha';
             normalizedPayload = webhookProcessor.normalizeWahaPayload(payload);
         } else {
-            console.log('[WEBHOOK] Unknown format, trying to process anyway...');
+            console.log('[WEBHOOK] Unknown format, raw:', JSON.stringify(payload).substring(0, 300));
         }
         
-        console.log('[WEBHOOK] Format detected:', format);
+        console.log('[WEBHOOK] Format:', format);
 
         // Process the webhook
         const result = await webhookProcessor.processWhatsAppWebhook(normalizedPayload);
@@ -54,7 +62,7 @@ router.post('/', async (req, res) => {
 
         // Trigger the workflow if approved
         if (result.action === 'approve') {
-            console.log('[WEBHOOK] Triggering workflow:', result.webhookUrl || result.workflowId);
+            console.log('[WEBHOOK] Triggering:', result.webhookUrl || result.workflowId);
             webhookProcessor.triggerWorkflow(result, payload);
         }
         
