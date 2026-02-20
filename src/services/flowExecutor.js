@@ -3,18 +3,22 @@ const { WhatsAppService } = require('./whatsapp');
 
 class FlowExecutor {
     async executeFlow(flowId, messageData, originalPayload) {
-        console.log('[FLOW] Starting flow execution:', flowId);
+        console.log('[FLOW] ========================================');
+        console.log('[FLOW] Starting flow execution');
+        console.log('[FLOW] Flow ID:', flowId);
+        console.log('[FLOW] Phone:', messageData.phone);
+        console.log('[FLOW] Message:', messageData.message);
         
         try {
             // Get flow and its nodes
             const flowResult = await query('SELECT * FROM flows WHERE id = $1', [flowId]);
             if (flowResult.rows.length === 0) {
-                console.log('[FLOW] Flow not found:', flowId);
+                console.log('[FLOW] ERROR: Flow not found:', flowId);
                 return { success: false, error: 'Flow not found' };
             }
             
             const flow = flowResult.rows[0];
-            console.log('[FLOW] Flow:', flow.name);
+            console.log('[FLOW] Flow name:', flow.name);
             
             // Get all nodes for this flow
             const nodesResult = await query(
@@ -22,6 +26,8 @@ class FlowExecutor {
                 [flowId]
             );
             const nodes = nodesResult.rows;
+            console.log('[FLOW] Found', nodes.length, 'nodes');
+            nodes.forEach(n => console.log('[FLOW]   -', n.type, ':', n.label || n.node_id));
             
             // Get all edges for this flow
             const edgesResult = await query(
@@ -29,20 +35,24 @@ class FlowExecutor {
                 [flowId]
             );
             const edges = edgesResult.rows;
+            console.log('[FLOW] Found', edges.length, 'edges');
             
             // Find the trigger node
             const triggerNode = nodes.find(n => n.type === 'trigger');
             if (!triggerNode) {
-                console.log('[FLOW] No trigger node found');
+                console.log('[FLOW] ERROR: No trigger node found');
                 return { success: false, error: 'No trigger node' };
             }
+            console.log('[FLOW] Trigger node config:', JSON.stringify(triggerNode.config));
             
             // Get bot credentials from trigger config
             const botId = triggerNode.config?.bot_id;
             if (!botId) {
-                console.log('[FLOW] No bot_id in trigger config');
+                console.log('[FLOW] ERROR: No bot_id in trigger config');
+                console.log('[FLOW] This flow needs to be configured with a WhatsApp number in the trigger node');
                 return { success: false, error: 'No bot configured in trigger' };
             }
+            console.log('[FLOW] Bot ID from trigger:', botId);
             
             // Get bot with credentials
             const botResult = await query(
@@ -164,21 +174,32 @@ class FlowExecutor {
     }
     
     async executeMessageNode(context, config) {
+        console.log('[FLOW] Message node config:', JSON.stringify(config));
+        
         const text = this.replaceVariables(config.text || '', context);
         const buttons = config.buttons || [];
         
         console.log('[FLOW] Sending message to:', context.phone);
-        console.log('[FLOW] Message:', text.substring(0, 100));
+        console.log('[FLOW] Message text:', text ? text.substring(0, 100) : '(empty)');
+        console.log('[FLOW] Buttons count:', buttons.length);
+        
+        if (!text && buttons.length === 0) {
+            console.log('[FLOW] Skipping empty message');
+            return;
+        }
         
         try {
-            if (buttons.length > 0) {
+            if (buttons.length > 0 && text) {
+                console.log('[FLOW] Sending button message with', buttons.length, 'buttons');
                 await context.wa.sendButtonMessage(context.phone, text, buttons);
-            } else {
+            } else if (text) {
+                console.log('[FLOW] Sending text message');
                 await context.wa.sendTextMessage(context.phone, text);
             }
             console.log('[FLOW] Message sent successfully');
         } catch (error) {
-            console.error('[FLOW] Failed to send message:', error.message);
+            console.error('[FLOW] Failed to send message:', error);
+            console.error('[FLOW] Error details:', JSON.stringify(error));
         }
     }
     

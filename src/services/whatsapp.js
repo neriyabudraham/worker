@@ -80,6 +80,19 @@ class WhatsAppService {
     }
 
     async sendButtonMessage(to, text, buttons) {
+        // Support both string array and object array formats
+        const formattedButtons = buttons.slice(0, 3).map((btn, index) => {
+            const title = typeof btn === 'string' ? btn : (btn.title || btn.text || btn.label || `כפתור ${index + 1}`);
+            const id = typeof btn === 'string' ? `btn_${index}` : (btn.id || `btn_${index}`);
+            return {
+                type: 'reply',
+                reply: {
+                    id: id,
+                    title: title.substring(0, 20)
+                }
+            };
+        });
+
         const body = {
             messaging_product: 'whatsapp',
             recipient_type: 'individual',
@@ -89,17 +102,14 @@ class WhatsAppService {
                 type: 'button',
                 body: { text: text },
                 action: {
-                    buttons: buttons.slice(0, 3).map((btn, index) => ({
-                        type: 'reply',
-                        reply: {
-                            id: `btn_${index}`,
-                            title: btn.substring(0, 20)
-                        }
-                    }))
+                    buttons: formattedButtons
                 }
             }
         };
 
+        console.log('[WA] Sending button message to:', to);
+        console.log('[WA] Buttons:', JSON.stringify(formattedButtons));
+        
         return this.makeRequest('POST', `${this.phoneNumberId}/messages`, body);
     }
 
