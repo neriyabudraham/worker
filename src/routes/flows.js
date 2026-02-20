@@ -170,7 +170,23 @@ router.put('/:id', async (req, res, next) => {
 // Delete flow
 router.delete('/:id', async (req, res, next) => {
     try {
-        const result = await query('DELETE FROM flows WHERE id = $1 RETURNING *', [req.params.id]);
+        const flowId = req.params.id;
+        
+        // Unlink any bots connected to this flow
+        await query('UPDATE bots SET flow_id = NULL WHERE flow_id = $1', [flowId]);
+        
+        // Delete flow sessions
+        await query('DELETE FROM flow_sessions WHERE flow_id = $1', [flowId]);
+        
+        // Delete flow executions
+        await query('DELETE FROM flow_executions WHERE flow_id = $1', [flowId]);
+        
+        // Delete flow nodes and edges
+        await query('DELETE FROM flow_nodes WHERE flow_id = $1', [flowId]);
+        await query('DELETE FROM flow_edges WHERE flow_id = $1', [flowId]);
+        
+        // Delete the flow itself
+        const result = await query('DELETE FROM flows WHERE id = $1 RETURNING *', [flowId]);
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Flow not found' });
         }
