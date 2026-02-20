@@ -37,34 +37,14 @@ class FlowExecutor {
         }
         
         // ============================================
-        // CASE 2: Button reply - Execute button path (each button once)
+        // CASE 2: Button reply - Execute button path (unlimited clicks)
         // ============================================
         if (isButtonReply && contextMessageId) {
             const buttonId = interactive.button_reply.id;
             const buttonTitle = interactive.button_reply.title;
             console.log('[FLOW] BUTTON REPLY - ID:', buttonId, 'Title:', buttonTitle);
             
-            // Check if this specific button was already clicked
-            const clickedResult = await query(
-                `SELECT * FROM flow_button_clicks 
-                 WHERE flow_id = $1 AND phone = $2 AND message_id = $3 AND button_id = $4`,
-                [flowId, messageData.phone, contextMessageId, buttonId]
-            );
-            
-            if (clickedResult.rows.length > 0) {
-                console.log('[FLOW] Button already clicked, ignoring');
-                return { success: true, ignored: true, reason: 'button_already_clicked' };
-            }
-            
-            // Mark button as clicked
-            await query(
-                `INSERT INTO flow_button_clicks (flow_id, phone, message_id, button_id, button_title)
-                 VALUES ($1, $2, $3, $4, $5)
-                 ON CONFLICT DO NOTHING`,
-                [flowId, messageData.phone, contextMessageId, buttonId, buttonTitle]
-            );
-            
-            // Find and execute the button's path
+            // Execute button path (no click limit)
             return await this.executeButtonPath(flowId, messageData, originalPayload, contextMessageId, buttonId);
         }
         
