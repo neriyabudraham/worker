@@ -458,8 +458,15 @@
       tr.setAttribute('data-id', bot.id);
 
       const isActive = bot.status === 'active';
+      const isLinkedToFlow = bot.flow_id != null;
       const waLink = `https://wa.me/${bot.phone_number}`;
       const workflowName = bot.workflow_name || workflows.find(w => w.id === bot.workflow_id)?.name || '-- ללא --';
+
+      // Style for bots linked to flows
+      if (isLinkedToFlow) {
+        tr.style.background = 'linear-gradient(90deg, #f0e6ff 0%, #fff 30%)';
+        tr.style.borderRight = '4px solid #9333ea';
+      }
 
       tr.innerHTML = `
         <td class="drag-handle" data-label=""><i class="fa-solid fa-grip-vertical"></i></td>
@@ -468,47 +475,74 @@
           <a href="${waLink}" target="_blank" rel="noopener noreferrer" class="phone-link" title="פתח שיחה בוואטסאפ">
             <i class="fa-brands fa-whatsapp"></i> ${bot.phone_number}
           </a>
+          ${isLinkedToFlow ? `
+            <a href="/builder/editor/${bot.flow_id}" style="display:inline-flex; align-items:center; gap:4px; background:#9333ea; color:white; padding:3px 10px; border-radius:15px; font-size:0.75rem; font-weight:600; margin-right:8px; text-decoration:none;" title="מקושר לתהליך">
+              <i class="fa-solid fa-diagram-project"></i> תהליך #${bot.flow_id}
+            </a>
+          ` : ''}
         </td>
         <td data-label="קמפיין">
-          <div class="search-select-container" data-bot-id="${bot.id}">
-            <div class="search-select-input" onclick="toggleWorkflowDropdown(this)">${workflowName}</div>
-            <div class="search-select-dropdown">
-              <input type="text" class="search-select-search" placeholder="חפש workflow..." oninput="filterWorkflows(this)">
-              <div class="search-select-options">
-                <div class="search-select-option ${!bot.workflow_id ? 'selected' : ''}" data-value="" onclick="selectWorkflow(this, ${bot.id})">-- ללא --</div>
-                ${workflows.map(w => `
-                  <div class="search-select-option ${w.id === bot.workflow_id ? 'selected' : ''}" data-value="${w.id}" onclick="selectWorkflow(this, ${bot.id})">${w.name}</div>
-                `).join('')}
+          ${isLinkedToFlow ? `
+            <span style="color:#9333ea; font-weight:500;"><i class="fa-solid fa-lock" style="margin-left:5px;"></i> מנוהל בתהליך</span>
+          ` : `
+            <div class="search-select-container" data-bot-id="${bot.id}">
+              <div class="search-select-input" onclick="toggleWorkflowDropdown(this)">${workflowName}</div>
+              <div class="search-select-dropdown">
+                <input type="text" class="search-select-search" placeholder="חפש workflow..." oninput="filterWorkflows(this)">
+                <div class="search-select-options">
+                  <div class="search-select-option ${!bot.workflow_id ? 'selected' : ''}" data-value="" onclick="selectWorkflow(this, ${bot.id})">-- ללא --</div>
+                  ${workflows.map(w => `
+                    <div class="search-select-option ${w.id === bot.workflow_id ? 'selected' : ''}" data-value="${w.id}" onclick="selectWorkflow(this, ${bot.id})">${w.name}</div>
+                  `).join('')}
+                </div>
               </div>
             </div>
-          </div>
+          `}
         </td>
         <td data-label="סטטוס">
-          <select style="width:100%; border-color: ${isActive ? 'var(--success)' : '#ccc'}; font-weight:bold; color:${isActive ? 'var(--success)' : 'var(--danger)'}"
-                  onchange="updateBot(${bot.id}, 'status', this.value)">
-            <option value="active" ${isActive ? 'selected' : ''}>פעיל</option>
-            <option value="inactive" ${!isActive ? 'selected' : ''}>כבוי</option>
-          </select>
+          ${isLinkedToFlow ? `
+            <span style="color:#9333ea; font-weight:500;"><i class="fa-solid fa-lock" style="margin-left:5px;"></i> תהליך</span>
+          ` : `
+            <select style="width:100%; border-color: ${isActive ? 'var(--success)' : '#ccc'}; font-weight:bold; color:${isActive ? 'var(--success)' : 'var(--danger)'}"
+                    onchange="updateBot(${bot.id}, 'status', this.value)">
+              <option value="active" ${isActive ? 'selected' : ''}>פעיל</option>
+              <option value="inactive" ${!isActive ? 'selected' : ''}>כבוי</option>
+            </select>
+          `}
         </td>
-        <td data-label="תזמון">${getSmartDateDisplay(bot.active_from, bot.active_until)}</td>
+        <td data-label="תזמון">${isLinkedToFlow ? '<span style="color:#9333ea;"><i class="fa-solid fa-lock" style="margin-left:5px;"></i></span>' : getSmartDateDisplay(bot.active_from, bot.active_until)}</td>
         <td data-label="גישה">
-          <select style="width:100%" onchange="updateBot(${bot.id}, 'access_mode', this.value)">
-            <option value="everyone" ${bot.access_mode === 'everyone' ? 'selected' : ''}>🔓 כולם</option>
-            <option value="whitelist" ${bot.access_mode === 'whitelist' ? 'selected' : ''}>📝 רשימה לבנה</option>
-            <option value="dynamic" ${bot.access_mode === 'dynamic' ? 'selected' : ''}>⚡ רשימה דינאמית</option>
-          </select>
+          ${isLinkedToFlow ? `
+            <span style="color:#9333ea; font-weight:500;"><i class="fa-solid fa-lock" style="margin-left:5px;"></i> תהליך</span>
+          ` : `
+            <select style="width:100%" onchange="updateBot(${bot.id}, 'access_mode', this.value)">
+              <option value="everyone" ${bot.access_mode === 'everyone' ? 'selected' : ''}>🔓 כולם</option>
+              <option value="whitelist" ${bot.access_mode === 'whitelist' ? 'selected' : ''}>📝 רשימה לבנה</option>
+              <option value="dynamic" ${bot.access_mode === 'dynamic' ? 'selected' : ''}>⚡ רשימה דינאמית</option>
+            </select>
+          `}
         </td>
         <td data-label="פעולות">
           <div style="display:flex; gap:5px; justify-content: flex-end;">
-            ${bot.access_mode === 'whitelist' ? `
-              <button class="btn-icon" style="background:#dcfce7; color:#15803d;" title="ערוך רשימה לבנה"
-                  onclick="openWhitelist(${bot.id}, '${bot.phone_number}')"><i class="fa-solid fa-users"></i></button>
-            ` : ''}
-            <button class="btn-icon" onclick="openSettings(${bot.id})" title="הגדרות"><i class="fa-solid fa-gear"></i></button>
+            ${isLinkedToFlow ? `
+              <a href="/builder/editor/${bot.flow_id}" class="btn-icon" style="background:#f3e8ff; color:#9333ea;" title="עבור לעריכת התהליך">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+              </a>
+            ` : `
+              ${bot.access_mode === 'whitelist' ? `
+                <button class="btn-icon" style="background:#dcfce7; color:#15803d;" title="ערוך רשימה לבנה"
+                    onclick="openWhitelist(${bot.id}, '${bot.phone_number}')"><i class="fa-solid fa-users"></i></button>
+              ` : ''}
+              <button class="btn-icon" onclick="openSettings(${bot.id})" title="הגדרות"><i class="fa-solid fa-gear"></i></button>
+            `}
           </div>
         </td>
         <td style="text-align:center" data-label="מחיקה">
-          <button class="btn-icon delete" onclick="deleteBot(${bot.id})"><i class="fa-solid fa-trash"></i></button>
+          ${isLinkedToFlow ? `
+            <span style="color:#d1d5db;" title="לא ניתן למחוק - מקושר לתהליך"><i class="fa-solid fa-lock"></i></span>
+          ` : `
+            <button class="btn-icon delete" onclick="deleteBot(${bot.id})"><i class="fa-solid fa-trash"></i></button>
+          `}
         </td>
       `;
       tbody.appendChild(tr);
