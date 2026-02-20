@@ -1,5 +1,6 @@
 const { query } = require('../db');
 const axios = require('axios');
+const flowExecutor = require('./flowExecutor');
 
 const MASTER_PHONE = process.env.MASTER_PHONE || '972584254229';
 const N8N_BASE_URL = process.env.N8N_BASE_URL || 'https://n8n2.neriyabudraham.co.il';
@@ -29,7 +30,7 @@ class WebhookProcessor {
                 return { action: 'stop', reason: 'no_bot' };
             }
 
-            console.log('[WEBHOOK] Bot found:', bot.id, '| Status:', bot.status, '| Workflow:', bot.workflow_id);
+            console.log('[WEBHOOK] Bot found:', bot.id, '| Status:', bot.status, '| Flow:', bot.flow_id || 'none', '| Workflow:', bot.workflow_id || 'none');
 
             // Check if sender is globally blocked
             const isBlocked = await this.isPhoneBlocked(messageData.phone);
@@ -201,6 +202,7 @@ class WebhookProcessor {
             action: 'approve',
             workflowId: bot.workflow_id,
             webhookUrl: bot.n8n_webhook_url,
+            flowId: bot.flow_id,
             delay: bot.delay_seconds || 0,
             messageData,
             botId: bot.id
@@ -247,28 +249,46 @@ class WebhookProcessor {
 
         const webhookUrl = result.webhookUrl;
         const workflowId = result.workflowId;
+        const flowId = result.flowId;
 
         // Update message as processed
         if (result.messageData?.messageId) {
             await query(
                 `UPDATE livechat SET processed = true, workflow_triggered = $1 WHERE message_id = $2`,
-                [webhookUrl || workflowId, result.messageData.messageId]
+                [flowId ? `flow:${flowId}` : (webhookUrl || workflowId), result.messageData.messageId]
             );
         }
 
-        // Prepare the data to send (same format as your n8n workflow)
-        const dataToSend = {
-            body: originalPayload,
-            PhoneBOT: result.messageData?.phoneBot,
-            Phone: result.messageData?.phone,
-            message: result.messageData?.message,
-            messageID: result.messageData?.messageId
-        };
+        // Priority 1: Flow builder (internal flows)
+        if (flowId) {
+            console.log('[TRIGGER] Executing flow:', flowId);
+            try {
+                const flowResult = await flowExecutor.executeFlow(flowId, result.messageData, originalPayload);
+                if (flowResult.success) {
+                    console.log('[TRIGGER] Flow executed successfully');
+                } else {
+                    console.log('[TRIGGER] Flow execution failed:', flowResult.error);
+                }
+                return;
+            } catch (error) {
+                console.error('[TRIGGER] Flow execution error:', error.message);
+                return;
+            }
+        }
 
-        // Priority 1: Direct webhook URL (if configured)
+        // Priority 2: Direct webhook URL (if configured)
         if (webhookUrl) {
             console.log('[TRIGGER] Using webhook URL:', webhookUrl);
             try {
+                // Prepare the data to send (same format as your n8n workflow)
+                const dataToSend = {
+                    body: originalPayload,
+                    PhoneBOT: result.messageData?.phoneBot,
+                    Phone: result.messageData?.phone,
+                    message: result.messageData?.message,
+                    messageID: result.messageData?.messageId
+                };
+                
                 const response = await axios.post(webhookUrl, dataToSend, {
                     timeout: 30000,
                     headers: { 'Content-Type': 'application/json' }
@@ -281,12 +301,10 @@ class WebhookProcessor {
             }
         }
 
-        // Priority 2: No webhook URL configured
-        if (!webhookUrl) {
-            console.log('[TRIGGER] No webhook URL configured for this bot!');
-            console.log('[TRIGGER] Workflow ID:', workflowId || 'none');
-            console.log('[TRIGGER] Please set a webhook URL in bot settings');
-        }
+        // Priority 3: No configuration
+        console.log('[TRIGGER] No flow or webhook configured for this bot!');
+        console.log('[TRIGGER] Workflow ID:', workflowId || 'none');
+        console.log('[TRIGGER] Please configure a flow or set a webhook URL');
     }
 
     sleep(ms) {

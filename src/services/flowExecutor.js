@@ -1,357 +1,283 @@
 const { query } = require('../db');
-const axios = require('axios');
+const { WhatsAppService } = require('./whatsapp');
 
 class FlowExecutor {
-    constructor() {
-        this.activeExecutions = new Map();
-    }
-
-    async executeFlow(flowId, triggerData) {
-        console.log(`[FLOW EXECUTOR] Starting flow ${flowId}`);
+    async executeFlow(flowId, messageData, originalPayload) {
+        console.log('[FLOW] Starting flow execution:', flowId);
         
         try {
-            // Get flow with nodes and edges
-            const flowResult = await query('SELECT * FROM flows WHERE id = $1 AND is_active = true', [flowId]);
+            // Get flow and its nodes
+            const flowResult = await query('SELECT * FROM flows WHERE id = $1', [flowId]);
             if (flowResult.rows.length === 0) {
-                console.log(`[FLOW EXECUTOR] Flow ${flowId} not found or not active`);
-                return { success: false, reason: 'Flow not found or not active' };
+                console.log('[FLOW] Flow not found:', flowId);
+                return { success: false, error: 'Flow not found' };
             }
-
+            
             const flow = flowResult.rows[0];
+            console.log('[FLOW] Flow:', flow.name);
             
-            const nodesResult = await query('SELECT * FROM flow_nodes WHERE flow_id = $1', [flowId]);
-            const edgesResult = await query('SELECT * FROM flow_edges WHERE flow_id = $1', [flowId]);
-            
+            // Get all nodes for this flow
+            const nodesResult = await query(
+                'SELECT * FROM flow_nodes WHERE flow_id = $1 ORDER BY created_at',
+                [flowId]
+            );
             const nodes = nodesResult.rows;
+            
+            // Get all edges for this flow
+            const edgesResult = await query(
+                'SELECT * FROM flow_edges WHERE flow_id = $1',
+                [flowId]
+            );
             const edges = edgesResult.rows;
             
-            // Create execution record
-            const execResult = await query(
-                `INSERT INTO flow_executions (flow_id, phone, trigger_data, status, variables)
-                 VALUES ($1, $2, $3, 'running', $4)
-                 RETURNING id`,
-                [flowId, triggerData.phone, triggerData, { trigger: triggerData }]
-            );
-            const executionId = execResult.rows[0].id;
-            
-            // Find trigger node
+            // Find the trigger node
             const triggerNode = nodes.find(n => n.type === 'trigger');
             if (!triggerNode) {
-                await this.completeExecution(executionId, 'failed', 'No trigger node found');
-                return { success: false, reason: 'No trigger node found' };
+                console.log('[FLOW] No trigger node found');
+                return { success: false, error: 'No trigger node' };
             }
             
-            // Execute flow starting from trigger
-            const result = await this.executeNode(
-                triggerNode,
+            // Get bot credentials from trigger config
+            const botId = triggerNode.config?.bot_id;
+            if (!botId) {
+                console.log('[FLOW] No bot_id in trigger config');
+                return { success: false, error: 'No bot configured in trigger' };
+            }
+            
+            // Get bot with credentials
+            const botResult = await query(
+                'SELECT * FROM bots WHERE id = $1',
+                [botId]
+            );
+            
+            if (botResult.rows.length === 0) {
+                console.log('[FLOW] Bot not found:', botId);
+                return { success: false, error: 'Bot not found' };
+            }
+            
+            const bot = botResult.rows[0];
+            
+            if (!bot.phone_number_id || !bot.access_token) {
+                console.log('[FLOW] Bot missing WhatsApp credentials');
+                return { success: false, error: 'Bot missing WhatsApp credentials' };
+            }
+            
+            // Create WhatsApp service
+            const wa = new WhatsAppService(bot.phone_number_id, bot.access_token);
+            
+            // Create execution context
+            const context = {
+                flowId,
+                flow,
                 nodes,
                 edges,
-                { ...triggerData, executionId },
-                executionId
+                wa,
+                bot,
+                phone: messageData.phone,
+                message: messageData.message,
+                messageData,
+                originalPayload,
+                variables: {}
+            };
+            
+            // Create execution log
+            const execResult = await query(
+                `INSERT INTO flow_executions (flow_id, phone, trigger_data, status)
+                 VALUES ($1, $2, $3, 'running')
+                 RETURNING id`,
+                [flowId, messageData.phone, JSON.stringify(originalPayload)]
             );
+            const executionId = execResult.rows[0].id;
+            context.executionId = executionId;
             
-            await this.completeExecution(executionId, 'completed');
-            return { success: true, result };
+            // Start execution from trigger node
+            await this.executeFromNode(context, triggerNode.node_id);
             
-        } catch (error) {
-            console.error(`[FLOW EXECUTOR] Error:`, error);
-            return { success: false, reason: error.message };
-        }
-    }
-
-    async executeNode(node, allNodes, allEdges, context, executionId) {
-        console.log(`[FLOW EXECUTOR] Executing node: ${node.node_id} (${node.subtype})`);
-        
-        const config = node.config || {};
-        let output = null;
-        
-        try {
-            // Execute based on node type
-            switch (node.subtype) {
-                case 'message_received':
-                case 'button_click':
-                case 'list_select':
-                    output = { triggered: true, data: context };
-                    break;
-                    
-                case 'send_text':
-                    output = await this.executeSendText(config, context);
-                    break;
-                    
-                case 'send_buttons':
-                    output = await this.executeSendButtons(config, context);
-                    break;
-                    
-                case 'send_list':
-                    output = await this.executeSendList(config, context);
-                    break;
-                    
-                case 'switch':
-                    output = await this.executeSwitch(config, context);
-                    break;
-                    
-                case 'filter':
-                    output = await this.executeFilter(config, context);
-                    break;
-                    
-                case 'wait':
-                    await this.executeWait(config);
-                    output = { waited: true };
-                    break;
-                    
-                case 'sql_query':
-                    output = await this.executeSqlQuery(config, context);
-                    break;
-                    
-                case 'add_participant':
-                    output = await this.executeAddParticipant(config, context);
-                    break;
-                    
-                case 'update_participant':
-                    output = await this.executeUpdateParticipant(config, context);
-                    break;
-                    
-                case 'add_card':
-                    output = await this.executeAddCard(config, context);
-                    break;
-                    
-                default:
-                    output = { unknown: true };
-            }
-            
-            // Log execution
+            // Mark execution as complete
             await query(
-                `UPDATE flow_executions 
-                 SET execution_log = execution_log || $1::jsonb,
-                     current_node_id = $2
-                 WHERE id = $3`,
-                [JSON.stringify([{ node: node.node_id, output, timestamp: new Date() }]), node.node_id, executionId]
+                `UPDATE flow_executions SET status = 'completed', completed_at = NOW() WHERE id = $1`,
+                [executionId]
             );
             
-            // Find next nodes
-            const outgoingEdges = allEdges.filter(e => e.source_node_id === node.node_id);
+            console.log('[FLOW] Execution completed');
+            return { success: true };
             
-            // For switch nodes, select the right output
-            if (node.subtype === 'switch' && output.selectedOutput) {
-                const selectedEdge = outgoingEdges.find(e => e.source_handle === output.selectedOutput);
-                if (selectedEdge) {
-                    const nextNode = allNodes.find(n => n.node_id === selectedEdge.target_node_id);
-                    if (nextNode) {
-                        await this.executeNode(nextNode, allNodes, allEdges, { ...context, ...output }, executionId);
-                    }
-                }
-            } else if (node.subtype === 'filter') {
-                // Filter: only continue if passed
-                if (output.passed) {
-                    for (const edge of outgoingEdges) {
-                        const nextNode = allNodes.find(n => n.node_id === edge.target_node_id);
-                        if (nextNode) {
-                            await this.executeNode(nextNode, allNodes, allEdges, { ...context, ...output }, executionId);
-                        }
-                    }
-                }
+        } catch (error) {
+            console.error('[FLOW] Execution error:', error);
+            return { success: false, error: error.message };
+        }
+    }
+    
+    async executeFromNode(context, nodeId) {
+        const node = context.nodes.find(n => n.node_id === nodeId);
+        if (!node) {
+            console.log('[FLOW] Node not found:', nodeId);
+            return;
+        }
+        
+        console.log('[FLOW] Executing node:', node.type, '|', node.label);
+        
+        // Execute the node
+        await this.executeNode(context, node);
+        
+        // Find next nodes via edges
+        const outgoingEdges = context.edges.filter(e => e.source_node_id === nodeId);
+        
+        for (const edge of outgoingEdges) {
+            await this.executeFromNode(context, edge.target_node_id);
+        }
+    }
+    
+    async executeNode(context, node) {
+        const config = node.config || {};
+        
+        switch (node.type) {
+            case 'trigger':
+                // Trigger is just the entry point, nothing to execute
+                console.log('[FLOW] Trigger node - passing through');
+                break;
+                
+            case 'message':
+                await this.executeMessageNode(context, config);
+                break;
+                
+            case 'delay':
+                await this.executeDelayNode(context, config);
+                break;
+                
+            case 'condition':
+                // TODO: Implement condition logic
+                console.log('[FLOW] Condition node - not yet implemented');
+                break;
+                
+            case 'action':
+                await this.executeActionNode(context, config);
+                break;
+                
+            case 'database':
+                await this.executeDatabaseNode(context, config);
+                break;
+                
+            default:
+                console.log('[FLOW] Unknown node type:', node.type);
+        }
+    }
+    
+    async executeMessageNode(context, config) {
+        const text = this.replaceVariables(config.text || '', context);
+        const buttons = config.buttons || [];
+        
+        console.log('[FLOW] Sending message to:', context.phone);
+        console.log('[FLOW] Message:', text.substring(0, 100));
+        
+        try {
+            if (buttons.length > 0) {
+                await context.wa.sendButtonMessage(context.phone, text, buttons);
             } else {
-                // Execute all next nodes
-                for (const edge of outgoingEdges) {
-                    const nextNode = allNodes.find(n => n.node_id === edge.target_node_id);
-                    if (nextNode) {
-                        await this.executeNode(nextNode, allNodes, allEdges, { ...context, ...output }, executionId);
-                    }
-                }
+                await context.wa.sendTextMessage(context.phone, text);
             }
-            
-            return output;
-            
+            console.log('[FLOW] Message sent successfully');
         } catch (error) {
-            console.error(`[FLOW EXECUTOR] Node ${node.node_id} error:`, error);
-            throw error;
+            console.error('[FLOW] Failed to send message:', error.message);
         }
     }
-
-    // Node Executors
-    async executeSendText(config, context) {
-        const message = this.interpolate(config.message || '', context);
-        console.log(`[FLOW] Sending text to ${context.phone}: ${message.substring(0, 50)}...`);
+    
+    async executeDelayNode(context, config) {
+        const duration = config.duration || 1;
+        const unit = config.unit || 'seconds';
         
-        // TODO: Integrate with WhatsApp API
-        // For now, just log
-        return { sent: true, message };
+        let ms = duration * 1000;
+        if (unit === 'minutes') ms = duration * 60 * 1000;
+        if (unit === 'hours') ms = duration * 60 * 60 * 1000;
+        
+        console.log('[FLOW] Delaying for:', duration, unit);
+        await this.sleep(ms);
     }
-
-    async executeSendButtons(config, context) {
-        const message = this.interpolate(config.message || '', context);
-        const buttons = (config.buttons || '').split('\n').filter(b => b.trim());
-        console.log(`[FLOW] Sending buttons to ${context.phone}`);
+    
+    async executeActionNode(context, config) {
+        const actionType = config.actionType;
         
-        return { sent: true, message, buttons };
-    }
-
-    async executeSendList(config, context) {
-        const message = this.interpolate(config.message || '', context);
-        const listItems = (config.listItems || '').split('\n').filter(i => i.trim());
-        console.log(`[FLOW] Sending list to ${context.phone}`);
-        
-        return { sent: true, message, listTitle: config.listTitle, listItems };
-    }
-
-    async executeSwitch(config, context) {
-        const conditions = JSON.parse(config.conditions || '[]');
-        
-        for (let i = 0; i < conditions.length; i++) {
-            const cond = conditions[i];
-            const value = this.getNestedValue(context, cond.field);
-            
-            let matched = false;
-            switch (cond.operator) {
-                case 'equals':
-                    matched = value == cond.value;
-                    break;
-                case 'contains':
-                    matched = String(value).includes(cond.value);
-                    break;
-                case 'starts_with':
-                    matched = String(value).startsWith(cond.value);
-                    break;
-                case 'gt':
-                    matched = Number(value) > Number(cond.value);
-                    break;
-                case 'lt':
-                    matched = Number(value) < Number(cond.value);
-                    break;
-            }
-            
-            if (matched) {
-                return { selectedOutput: `output_${i}`, condition: cond };
-            }
+        switch (actionType) {
+            case 'setVariable':
+                context.variables[config.variable] = config.value;
+                console.log('[FLOW] Set variable:', config.variable, '=', config.value);
+                break;
+            default:
+                console.log('[FLOW] Unknown action type:', actionType);
         }
-        
-        return { selectedOutput: 'default' };
     }
-
-    async executeFilter(config, context) {
-        const value = this.getNestedValue(context, config.field);
+    
+    async executeDatabaseNode(context, config) {
+        const operation = config.operation;
         
-        let passed = false;
-        switch (config.operator) {
-            case 'equals':
-                passed = value == config.value;
+        switch (operation) {
+            case 'addParticipant':
+                await this.addRaffleParticipant(context);
                 break;
-            case 'contains':
-                passed = String(value).includes(config.value);
+            case 'addCard':
+                await this.addParticipantCard(context);
                 break;
-            case 'starts_with':
-                passed = String(value).startsWith(config.value);
+            case 'query':
+                const result = await this.executeCustomQuery(config.sql, context);
+                context.variables.queryResult = result;
                 break;
-            case 'gt':
-                passed = Number(value) > Number(config.value);
-                break;
-            case 'lt':
-                passed = Number(value) < Number(config.value);
-                break;
+            default:
+                console.log('[FLOW] Unknown database operation:', operation);
         }
-        
-        return { passed, field: config.field, value };
     }
-
-    async executeWait(config) {
-        const seconds = parseInt(config.waitSeconds) || 1;
-        console.log(`[FLOW] Waiting ${seconds} seconds...`);
-        await new Promise(resolve => setTimeout(resolve, seconds * 1000));
-    }
-
-    async executeSqlQuery(config, context) {
-        const sql = this.interpolate(config.sql || '', context);
-        console.log(`[FLOW] Executing SQL: ${sql.substring(0, 100)}...`);
-        
+    
+    async addRaffleParticipant(context) {
         try {
+            await query(
+                `INSERT INTO raffle_participants (flow_id, phone, full_name, status)
+                 VALUES ($1, $2, $3, 'registered')
+                 ON CONFLICT (flow_id, phone) DO NOTHING`,
+                [context.flowId, context.phone, context.messageData.contactName || '']
+            );
+            console.log('[FLOW] Added raffle participant:', context.phone);
+        } catch (error) {
+            console.error('[FLOW] Failed to add participant:', error.message);
+        }
+    }
+    
+    async addParticipantCard(context) {
+        try {
+            await query(
+                `UPDATE raffle_participants SET cards = cards + 1 WHERE flow_id = $1 AND phone = $2`,
+                [context.flowId, context.phone]
+            );
+            console.log('[FLOW] Added card for:', context.phone);
+        } catch (error) {
+            console.error('[FLOW] Failed to add card:', error.message);
+        }
+    }
+    
+    async executeCustomQuery(sqlTemplate, context) {
+        try {
+            const sql = this.replaceVariables(sqlTemplate, context);
             const result = await query(sql);
-            return { success: true, rows: result.rows, rowCount: result.rowCount };
+            return result.rows;
         } catch (error) {
-            console.error(`[FLOW] SQL Error:`, error);
-            return { success: false, error: error.message };
+            console.error('[FLOW] Custom query error:', error.message);
+            return [];
         }
     }
-
-    async executeAddParticipant(config, context) {
-        const flowId = context.flowId || config.flowId;
-        const phone = context.phone;
-        const fullName = context.name || context.full_name || '';
+    
+    replaceVariables(text, context) {
+        if (!text) return '';
         
-        try {
-            const result = await query(
-                `INSERT INTO raffle_participants (flow_id, phone, full_name, came_from, status)
-                 VALUES ($1, $2, $3, $4, 'registered')
-                 ON CONFLICT (flow_id, phone) DO UPDATE SET updated_at = NOW()
-                 RETURNING *`,
-                [flowId, phone, fullName, context.came_from || null]
-            );
-            return { success: true, participant: result.rows[0] };
-        } catch (error) {
-            console.error(`[FLOW] Add participant error:`, error);
-            return { success: false, error: error.message };
-        }
+        return text
+            .replace(/{{phone}}/g, context.phone || '')
+            .replace(/{{message}}/g, context.message || '')
+            .replace(/{{name}}/g, context.messageData?.contactName || '')
+            .replace(/{{bot_phone}}/g, context.bot?.phone_number || '')
+            .replace(/\{\{(\w+)\}\}/g, (match, varName) => {
+                return context.variables[varName] || match;
+            });
     }
-
-    async executeUpdateParticipant(config, context) {
-        const flowId = context.flowId || config.flowId;
-        const phone = context.phone;
-        const updates = config.updates || {};
-        
-        try {
-            const result = await query(
-                `UPDATE raffle_participants 
-                 SET status = COALESCE($1, status),
-                     full_name = COALESCE($2, full_name),
-                     extra_data = extra_data || $3::jsonb
-                 WHERE flow_id = $4 AND phone = $5
-                 RETURNING *`,
-                [updates.status, updates.full_name, updates.extra || {}, flowId, phone]
-            );
-            return { success: true, participant: result.rows[0] };
-        } catch (error) {
-            console.error(`[FLOW] Update participant error:`, error);
-            return { success: false, error: error.message };
-        }
-    }
-
-    async executeAddCard(config, context) {
-        const flowId = context.flowId || config.flowId;
-        const phone = context.phone;
-        const cardCount = parseInt(config.cardCount) || 1;
-        
-        try {
-            const result = await query(
-                `UPDATE raffle_participants 
-                 SET cards = cards + $1
-                 WHERE flow_id = $2 AND phone = $3
-                 RETURNING *`,
-                [cardCount, flowId, phone]
-            );
-            return { success: true, participant: result.rows[0], added: cardCount };
-        } catch (error) {
-            console.error(`[FLOW] Add card error:`, error);
-            return { success: false, error: error.message };
-        }
-    }
-
-    async completeExecution(executionId, status, errorMessage = null) {
-        await query(
-            `UPDATE flow_executions 
-             SET status = $1, completed_at = NOW(), error_message = $2
-             WHERE id = $3`,
-            [status, errorMessage, executionId]
-        );
-    }
-
-    // Helpers
-    interpolate(text, context) {
-        return text.replace(/\{\{(\w+(?:\.\w+)*)\}\}/g, (match, path) => {
-            return this.getNestedValue(context, path) || match;
-        });
-    }
-
-    getNestedValue(obj, path) {
-        return path.split('.').reduce((current, key) => current?.[key], obj);
+    
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 }
 
