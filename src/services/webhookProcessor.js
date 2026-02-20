@@ -261,17 +261,18 @@ class WebhookProcessor {
 
         // Priority 1: Flow builder (internal flows)
         if (flowId) {
-            console.log('[TRIGGER] Executing flow:', flowId);
+            console.log('[TRIGGER] Handling flow:', flowId);
             try {
-                const flowResult = await flowExecutor.executeFlow(flowId, result.messageData, originalPayload);
+                // Use handleIncomingMessage which checks for active sessions
+                const flowResult = await flowExecutor.handleIncomingMessage(flowId, result.messageData, originalPayload);
                 if (flowResult.success) {
-                    console.log('[TRIGGER] Flow executed successfully');
+                    console.log('[TRIGGER] Flow handled successfully');
                 } else {
-                    console.log('[TRIGGER] Flow execution failed:', flowResult.error);
+                    console.log('[TRIGGER] Flow handling failed:', flowResult.error);
                 }
                 return;
             } catch (error) {
-                console.error('[TRIGGER] Flow execution error:', error.message);
+                console.error('[TRIGGER] Flow handling error:', error.message);
                 return;
             }
         }

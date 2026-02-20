@@ -2,93 +2,172 @@ const { query } = require('../db');
 const { WhatsAppService } = require('./whatsapp');
 
 class FlowExecutor {
-    async executeFlow(flowId, messageData, originalPayload) {
+    /**
+     * Check if there's an active session for this phone/flow
+     * If yes, handle the response (button click, etc.)
+     * If no, start a new flow execution
+     */
+    async handleIncomingMessage(flowId, messageData, originalPayload) {
         console.log('[FLOW] ========================================');
-        console.log('[FLOW] Starting flow execution');
+        console.log('[FLOW] Handling incoming message');
         console.log('[FLOW] Flow ID:', flowId);
         console.log('[FLOW] Phone:', messageData.phone);
         console.log('[FLOW] Message:', messageData.message);
+        console.log('[FLOW] Type:', messageData.type);
+        
+        // Check for active session
+        const sessionResult = await query(
+            `SELECT * FROM flow_sessions 
+             WHERE flow_id = $1 AND phone = $2 AND status = 'active'
+             ORDER BY created_at DESC LIMIT 1`,
+            [flowId, messageData.phone]
+        );
+        
+        const session = sessionResult.rows[0];
+        
+        // If there's an active session waiting for response
+        if (session && session.waiting_for) {
+            console.log('[FLOW] Found active session waiting for:', session.waiting_for);
+            console.log('[FLOW] Current node:', session.current_node_id);
+            return await this.handleSessionResponse(session, messageData, originalPayload);
+        }
+        
+        // Check if this is a button/list reply - might be continuation even without explicit wait
+        const isInteractiveReply = originalPayload?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.interactive;
+        if (isInteractiveReply && session) {
+            console.log('[FLOW] Interactive reply detected with session');
+            return await this.handleSessionResponse(session, messageData, originalPayload);
+        }
+        
+        // No active session or session not waiting - start fresh
+        console.log('[FLOW] Starting new flow execution');
+        return await this.executeFlow(flowId, messageData, originalPayload);
+    }
+    
+    /**
+     * Handle response to a waiting session (button click, list selection, etc.)
+     */
+    async handleSessionResponse(session, messageData, originalPayload) {
+        console.log('[FLOW] Handling session response');
         
         try {
-            // Get flow and its nodes
-            const flowResult = await query('SELECT * FROM flows WHERE id = $1', [flowId]);
-            if (flowResult.rows.length === 0) {
-                console.log('[FLOW] ERROR: Flow not found:', flowId);
-                return { success: false, error: 'Flow not found' };
+            // Get flow context
+            const context = await this.buildContext(session.flow_id, messageData, originalPayload);
+            if (!context) {
+                return { success: false, error: 'Failed to build context' };
             }
             
-            const flow = flowResult.rows[0];
-            console.log('[FLOW] Flow name:', flow.name);
+            // Restore variables from session
+            context.variables = session.variables || {};
+            context.executionId = session.execution_id;
             
-            // Get all nodes for this flow
-            const nodesResult = await query(
-                'SELECT * FROM flow_nodes WHERE flow_id = $1 ORDER BY created_at',
-                [flowId]
-            );
-            const nodes = nodesResult.rows;
-            console.log('[FLOW] Found', nodes.length, 'nodes');
-            nodes.forEach(n => console.log('[FLOW]   -', n.type, ':', n.label || n.node_id));
+            // Get the button/list selection
+            const interactiveMessage = originalPayload?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.interactive;
+            let selectedId = null;
+            let selectedTitle = null;
             
-            // Get all edges for this flow
-            const edgesResult = await query(
-                'SELECT * FROM flow_edges WHERE flow_id = $1',
-                [flowId]
+            if (interactiveMessage?.button_reply) {
+                selectedId = interactiveMessage.button_reply.id;
+                selectedTitle = interactiveMessage.button_reply.title;
+                console.log('[FLOW] Button reply:', selectedId, '-', selectedTitle);
+            } else if (interactiveMessage?.list_reply) {
+                selectedId = interactiveMessage.list_reply.id;
+                selectedTitle = interactiveMessage.list_reply.title;
+                console.log('[FLOW] List reply:', selectedId, '-', selectedTitle);
+            } else {
+                // Text response
+                selectedTitle = messageData.message;
+                console.log('[FLOW] Text response:', selectedTitle);
+            }
+            
+            // Save selected value to variables
+            context.variables.last_selection = selectedTitle;
+            context.variables.last_selection_id = selectedId;
+            
+            // Find the edge that matches the selected button/item
+            const currentNode = context.nodes.find(n => n.node_id === session.current_node_id);
+            if (!currentNode) {
+                console.log('[FLOW] Current node not found:', session.current_node_id);
+                return { success: false, error: 'Node not found' };
+            }
+            
+            // Get outgoing edges from current node
+            const outgoingEdges = context.edges.filter(e => e.source_node_id === session.current_node_id);
+            console.log('[FLOW] Found', outgoingEdges.length, 'outgoing edges');
+            
+            // Find the matching edge based on sourceHandle (btn_0, btn_1, etc.)
+            let targetEdge = null;
+            
+            if (selectedId) {
+                // Try to match by button/item index
+                const btnIndex = selectedId.replace('btn_', '').replace('item_', '');
+                targetEdge = outgoingEdges.find(e => 
+                    e.source_handle === selectedId || 
+                    e.source_handle === `btn_${btnIndex}` ||
+                    e.source_handle === `item_${btnIndex}`
+                );
+            }
+            
+            // If no specific button edge found, use the "next" or default edge
+            if (!targetEdge) {
+                targetEdge = outgoingEdges.find(e => 
+                    e.source_handle === 'next' || 
+                    !e.source_handle || 
+                    e.source_handle === ''
+                ) || outgoingEdges[0];
+            }
+            
+            if (!targetEdge) {
+                console.log('[FLOW] No matching edge found, ending flow');
+                await this.endSession(session.id);
+                return { success: true, ended: true };
+            }
+            
+            console.log('[FLOW] Following edge to:', targetEdge.target_node_id);
+            
+            // Update session to clear waiting state
+            await query(
+                `UPDATE flow_sessions SET waiting_for = NULL, waiting_options = NULL, 
+                 variables = $1, updated_at = NOW() WHERE id = $2`,
+                [JSON.stringify(context.variables), session.id]
             );
-            const edges = edgesResult.rows;
-            console.log('[FLOW] Found', edges.length, 'edges');
+            
+            // Continue execution from target node
+            await this.executeFromNode(context, targetEdge.target_node_id, session.id);
+            
+            return { success: true };
+            
+        } catch (error) {
+            console.error('[FLOW] Session response error:', error);
+            return { success: false, error: error.message };
+        }
+    }
+    
+    /**
+     * Start a new flow execution
+     */
+    async executeFlow(flowId, messageData, originalPayload) {
+        console.log('[FLOW] Starting flow execution');
+        console.log('[FLOW] Flow ID:', flowId);
+        
+        try {
+            const context = await this.buildContext(flowId, messageData, originalPayload);
+            if (!context) {
+                return { success: false, error: 'Failed to build context' };
+            }
             
             // Find the trigger node
-            const triggerNode = nodes.find(n => n.type === 'trigger');
+            const triggerNode = context.nodes.find(n => n.type === 'trigger');
             if (!triggerNode) {
                 console.log('[FLOW] ERROR: No trigger node found');
                 return { success: false, error: 'No trigger node' };
             }
-            console.log('[FLOW] Trigger node config:', JSON.stringify(triggerNode.config));
             
-            // Get bot credentials from trigger config
-            const botId = triggerNode.config?.bot_id;
-            if (!botId) {
-                console.log('[FLOW] ERROR: No bot_id in trigger config');
-                console.log('[FLOW] This flow needs to be configured with a WhatsApp number in the trigger node');
-                return { success: false, error: 'No bot configured in trigger' };
-            }
-            console.log('[FLOW] Bot ID from trigger:', botId);
-            
-            // Get bot with credentials
-            const botResult = await query(
-                'SELECT * FROM bots WHERE id = $1',
-                [botId]
+            // Clear any existing session for this phone/flow
+            await query(
+                `UPDATE flow_sessions SET status = 'expired' WHERE flow_id = $1 AND phone = $2 AND status = 'active'`,
+                [flowId, messageData.phone]
             );
-            
-            if (botResult.rows.length === 0) {
-                console.log('[FLOW] Bot not found:', botId);
-                return { success: false, error: 'Bot not found' };
-            }
-            
-            const bot = botResult.rows[0];
-            
-            if (!bot.phone_number_id || !bot.access_token) {
-                console.log('[FLOW] Bot missing WhatsApp credentials');
-                return { success: false, error: 'Bot missing WhatsApp credentials' };
-            }
-            
-            // Create WhatsApp service
-            const wa = new WhatsAppService(bot.phone_number_id, bot.access_token);
-            
-            // Create execution context
-            const context = {
-                flowId,
-                flow,
-                nodes,
-                edges,
-                wa,
-                bot,
-                phone: messageData.phone,
-                message: messageData.message,
-                messageData,
-                originalPayload,
-                variables: {}
-            };
             
             // Create execution log
             const execResult = await query(
@@ -100,16 +179,22 @@ class FlowExecutor {
             const executionId = execResult.rows[0].id;
             context.executionId = executionId;
             
-            // Start execution from trigger node
-            await this.executeFromNode(context, triggerNode.node_id);
-            
-            // Mark execution as complete
-            await query(
-                `UPDATE flow_executions SET status = 'completed', completed_at = NOW() WHERE id = $1`,
-                [executionId]
+            // Create new session
+            const sessionResult = await query(
+                `INSERT INTO flow_sessions (flow_id, phone, current_node_id, execution_id, status)
+                 VALUES ($1, $2, $3, $4, 'active')
+                 ON CONFLICT (flow_id, phone) DO UPDATE SET 
+                    current_node_id = $3, execution_id = $4, status = 'active',
+                    waiting_for = NULL, waiting_options = NULL, variables = '{}',
+                    updated_at = NOW()
+                 RETURNING id`,
+                [flowId, messageData.phone, triggerNode.node_id, executionId]
             );
+            const sessionId = sessionResult.rows[0].id;
             
-            console.log('[FLOW] Execution completed');
+            // Start execution from trigger node
+            await this.executeFromNode(context, triggerNode.node_id, sessionId);
+            
             return { success: true };
             
         } catch (error) {
@@ -118,66 +203,156 @@ class FlowExecutor {
         }
     }
     
-    async executeFromNode(context, nodeId) {
+    /**
+     * Build execution context
+     */
+    async buildContext(flowId, messageData, originalPayload) {
+        // Get flow
+        const flowResult = await query('SELECT * FROM flows WHERE id = $1', [flowId]);
+        if (flowResult.rows.length === 0) {
+            console.log('[FLOW] ERROR: Flow not found:', flowId);
+            return null;
+        }
+        const flow = flowResult.rows[0];
+        
+        // Get nodes
+        const nodesResult = await query(
+            'SELECT * FROM flow_nodes WHERE flow_id = $1 ORDER BY created_at',
+            [flowId]
+        );
+        const nodes = nodesResult.rows;
+        console.log('[FLOW] Found', nodes.length, 'nodes');
+        
+        // Get edges
+        const edgesResult = await query(
+            'SELECT * FROM flow_edges WHERE flow_id = $1',
+            [flowId]
+        );
+        const edges = edgesResult.rows;
+        console.log('[FLOW] Found', edges.length, 'edges');
+        
+        // Get trigger node for bot credentials
+        const triggerNode = nodes.find(n => n.type === 'trigger');
+        const botId = triggerNode?.config?.bot_id;
+        
+        if (!botId) {
+            console.log('[FLOW] ERROR: No bot_id in trigger config');
+            return null;
+        }
+        
+        // Get bot
+        const botResult = await query('SELECT * FROM bots WHERE id = $1', [botId]);
+        if (botResult.rows.length === 0 || !botResult.rows[0].phone_number_id || !botResult.rows[0].access_token) {
+            console.log('[FLOW] Bot not found or missing credentials');
+            return null;
+        }
+        const bot = botResult.rows[0];
+        
+        // Create WhatsApp service
+        const wa = new WhatsAppService(bot.phone_number_id, bot.access_token);
+        
+        return {
+            flowId,
+            flow,
+            nodes,
+            edges,
+            wa,
+            bot,
+            phone: messageData.phone,
+            message: messageData.message,
+            messageData,
+            originalPayload,
+            variables: {}
+        };
+    }
+    
+    /**
+     * Execute from a specific node, with wait support
+     */
+    async executeFromNode(context, nodeId, sessionId) {
         const node = context.nodes.find(n => n.node_id === nodeId);
         if (!node) {
             console.log('[FLOW] Node not found:', nodeId);
             return;
         }
         
-        console.log('[FLOW] Executing node:', node.type, '|', node.label);
+        console.log('[FLOW] Executing node:', node.type, '|', node.label || nodeId);
         
-        // Execute the node
-        await this.executeNode(context, node);
+        // Update session with current node
+        await query(
+            `UPDATE flow_sessions SET current_node_id = $1, variables = $2, updated_at = NOW() WHERE id = $3`,
+            [nodeId, JSON.stringify(context.variables), sessionId]
+        );
         
-        // Find next nodes via edges
+        // Execute the node and check if we need to wait
+        const shouldWait = await this.executeNode(context, node, sessionId);
+        
+        if (shouldWait) {
+            console.log('[FLOW] Node requires wait, pausing execution');
+            return; // Stop execution here - will continue when user responds
+        }
+        
+        // Find and execute next nodes
         const outgoingEdges = context.edges.filter(e => e.source_node_id === nodeId);
         
-        for (const edge of outgoingEdges) {
-            await this.executeFromNode(context, edge.target_node_id);
+        // For nodes without buttons, follow the default/next edge
+        const defaultEdge = outgoingEdges.find(e => 
+            !e.source_handle || e.source_handle === '' || e.source_handle === 'next'
+        ) || outgoingEdges[0];
+        
+        if (defaultEdge) {
+            await this.executeFromNode(context, defaultEdge.target_node_id, sessionId);
+        } else {
+            // No more edges - flow complete
+            console.log('[FLOW] No more edges, flow complete');
+            await this.endSession(sessionId);
         }
     }
     
-    async executeNode(context, node) {
+    /**
+     * Execute a single node
+     * Returns true if execution should wait for user input
+     */
+    async executeNode(context, node, sessionId) {
         const config = node.config || {};
         
         switch (node.type) {
             case 'trigger':
-                // Trigger is just the entry point, nothing to execute
                 console.log('[FLOW] Trigger node - passing through');
-                break;
+                return false;
                 
             case 'message':
-                await this.executeMessageNode(context, config);
-                break;
+                return await this.executeMessageNode(context, config, node, sessionId);
             
             case 'list':
-                await this.executeListNode(context, config);
-                break;
+                return await this.executeListNode(context, config, node, sessionId);
                 
             case 'delay':
                 await this.executeDelayNode(context, config);
-                break;
+                return false;
                 
             case 'condition':
-                // TODO: Implement condition logic
                 console.log('[FLOW] Condition node - not yet implemented');
-                break;
+                return false;
                 
             case 'action':
                 await this.executeActionNode(context, config);
-                break;
+                return false;
                 
             case 'database':
                 await this.executeDatabaseNode(context, config);
-                break;
+                return false;
                 
             default:
                 console.log('[FLOW] Unknown node type:', node.type);
+                return false;
         }
     }
     
-    async executeMessageNode(context, config) {
+    /**
+     * Execute message node - returns true if has buttons (wait for response)
+     */
+    async executeMessageNode(context, config, node, sessionId) {
         console.log('[FLOW] Message node config:', JSON.stringify(config));
         
         const text = this.replaceVariables(config.text || '', context);
@@ -189,25 +364,44 @@ class FlowExecutor {
         
         if (!text && buttons.length === 0) {
             console.log('[FLOW] Skipping empty message');
-            return;
+            return false;
         }
         
         try {
             if (buttons.length > 0 && text) {
                 console.log('[FLOW] Sending button message with', buttons.length, 'buttons');
                 await context.wa.sendButtonMessage(context.phone, text, buttons);
+                
+                // Set session to wait for button response
+                const waitingOptions = buttons.map((btn, i) => ({
+                    id: `btn_${i}`,
+                    title: typeof btn === 'string' ? btn : btn.title
+                }));
+                
+                await query(
+                    `UPDATE flow_sessions SET waiting_for = 'button', waiting_options = $1 WHERE id = $2`,
+                    [JSON.stringify(waitingOptions), sessionId]
+                );
+                
+                console.log('[FLOW] Waiting for button response');
+                return true; // Wait for response
+                
             } else if (text) {
                 console.log('[FLOW] Sending text message');
                 await context.wa.sendTextMessage(context.phone, text);
+                return false; // Continue immediately
             }
-            console.log('[FLOW] Message sent successfully');
         } catch (error) {
             console.error('[FLOW] Failed to send message:', error);
-            console.error('[FLOW] Error details:', JSON.stringify(error));
         }
+        
+        return false;
     }
     
-    async executeListNode(context, config) {
+    /**
+     * Execute list node - returns true (always waits for selection)
+     */
+    async executeListNode(context, config, node, sessionId) {
         console.log('[FLOW] List node config:', JSON.stringify(config));
         
         const title = this.replaceVariables(config.title || 'בחר אופציה', context);
@@ -215,13 +409,9 @@ class FlowExecutor {
         const buttonText = config.buttonText || 'בחר';
         const items = config.items || [];
         
-        console.log('[FLOW] Sending list to:', context.phone);
-        console.log('[FLOW] List title:', title);
-        console.log('[FLOW] Items count:', items.length);
-        
         if (items.length === 0) {
             console.log('[FLOW] Skipping empty list');
-            return;
+            return false;
         }
         
         try {
@@ -238,10 +428,24 @@ class FlowExecutor {
                     }))
                 }]
             });
-            console.log('[FLOW] List sent successfully');
+            
+            // Set session to wait for list selection
+            const waitingOptions = items.map((item, i) => ({
+                id: item.id || `item_${i}`,
+                title: typeof item === 'string' ? item : item.title
+            }));
+            
+            await query(
+                `UPDATE flow_sessions SET waiting_for = 'list', waiting_options = $1 WHERE id = $2`,
+                [JSON.stringify(waitingOptions), sessionId]
+            );
+            
+            console.log('[FLOW] Waiting for list selection');
+            return true; // Wait for response
+            
         } catch (error) {
             console.error('[FLOW] Failed to send list:', error);
-            console.error('[FLOW] Error details:', JSON.stringify(error));
+            return false;
         }
     }
     
@@ -262,8 +466,8 @@ class FlowExecutor {
         
         switch (actionType) {
             case 'setVariable':
-                context.variables[config.variable] = config.value;
-                console.log('[FLOW] Set variable:', config.variable, '=', config.value);
+                context.variables[config.variable] = this.replaceVariables(config.value || '', context);
+                console.log('[FLOW] Set variable:', config.variable, '=', context.variables[config.variable]);
                 break;
             default:
                 console.log('[FLOW] Unknown action type:', actionType);
@@ -295,7 +499,7 @@ class FlowExecutor {
                 `INSERT INTO raffle_participants (flow_id, phone, full_name, status)
                  VALUES ($1, $2, $3, 'registered')
                  ON CONFLICT (flow_id, phone) DO NOTHING`,
-                [context.flowId, context.phone, context.messageData.contactName || '']
+                [context.flowId, context.phone, context.messageData?.contactName || '']
             );
             console.log('[FLOW] Added raffle participant:', context.phone);
         } catch (error) {
@@ -326,6 +530,28 @@ class FlowExecutor {
         }
     }
     
+    async endSession(sessionId) {
+        try {
+            await query(
+                `UPDATE flow_sessions SET status = 'completed', updated_at = NOW() WHERE id = $1`,
+                [sessionId]
+            );
+            
+            // Also update the execution
+            const session = await query('SELECT execution_id FROM flow_sessions WHERE id = $1', [sessionId]);
+            if (session.rows[0]?.execution_id) {
+                await query(
+                    `UPDATE flow_executions SET status = 'completed', completed_at = NOW() WHERE id = $1`,
+                    [session.rows[0].execution_id]
+                );
+            }
+            
+            console.log('[FLOW] Session ended:', sessionId);
+        } catch (error) {
+            console.error('[FLOW] Error ending session:', error);
+        }
+    }
+    
     replaceVariables(text, context) {
         if (!text) return '';
         
@@ -334,8 +560,9 @@ class FlowExecutor {
             .replace(/{{message}}/g, context.message || '')
             .replace(/{{name}}/g, context.messageData?.contactName || '')
             .replace(/{{bot_phone}}/g, context.bot?.phone_number || '')
+            .replace(/{{last_selection}}/g, context.variables?.last_selection || '')
             .replace(/\{\{(\w+)\}\}/g, (match, varName) => {
-                return context.variables[varName] || match;
+                return context.variables[varName] !== undefined ? context.variables[varName] : match;
             });
     }
     
