@@ -15,6 +15,13 @@ class FlowExecutor {
         console.log('[FLOW] Message:', messageData.message);
         console.log('[FLOW] Type:', messageData.type);
         
+        // Get the context message ID (the original message being replied to)
+        const contextMessageId = originalPayload?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.context?.id;
+        const isInteractiveReply = originalPayload?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.interactive;
+        
+        console.log('[FLOW] Context message ID:', contextMessageId || 'none');
+        console.log('[FLOW] Is interactive reply:', !!isInteractiveReply);
+        
         // Check for active session
         const sessionResult = await query(
             `SELECT * FROM flow_sessions 
@@ -23,7 +30,7 @@ class FlowExecutor {
             [flowId, messageData.phone]
         );
         
-        const session = sessionResult.rows[0];
+        let session = sessionResult.rows[0];
         
         // If there's an active session waiting for response
         if (session && session.waiting_for) {
@@ -32,8 +39,30 @@ class FlowExecutor {
             return await this.handleSessionResponse(session, messageData, originalPayload);
         }
         
-        // Check if this is a button/list reply - might be continuation even without explicit wait
-        const isInteractiveReply = originalPayload?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.interactive;
+        // Check if this is a button/list reply to a recently completed session
+        // This handles the case where user clicks multiple buttons on the same message
+        if (isInteractiveReply && contextMessageId) {
+            console.log('[FLOW] Checking for recently completed session...');
+            
+            // Check if there's a completed session that already responded to this message
+            const recentSession = await query(
+                `SELECT * FROM flow_sessions 
+                 WHERE flow_id = $1 AND phone = $2 
+                 AND status = 'completed'
+                 AND last_message_id = $3
+                 AND updated_at > NOW() - INTERVAL '5 minutes'
+                 ORDER BY updated_at DESC LIMIT 1`,
+                [flowId, messageData.phone, contextMessageId]
+            );
+            
+            if (recentSession.rows.length > 0) {
+                console.log('[FLOW] IGNORING: Already responded to this message');
+                console.log('[FLOW] Previous response was at:', recentSession.rows[0].updated_at);
+                return { success: true, ignored: true, reason: 'already_responded' };
+            }
+        }
+        
+        // If this is an interactive reply but no active session, check if session exists
         if (isInteractiveReply && session) {
             console.log('[FLOW] Interactive reply detected with session');
             return await this.handleSessionResponse(session, messageData, originalPayload);
@@ -155,11 +184,14 @@ class FlowExecutor {
             console.log('[FLOW] Selected edge:', targetEdge.edge_id);
             console.log('[FLOW] Target node:', targetEdge.target_node_id);
             
-            // Update session to clear waiting state
+            // Get the context message ID to track which message was responded to
+            const contextMessageId = originalPayload?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.context?.id;
+            
+            // Update session to clear waiting state and store the message we responded to
             await query(
                 `UPDATE flow_sessions SET waiting_for = NULL, waiting_options = NULL, 
-                 variables = $1, updated_at = NOW() WHERE id = $2`,
-                [JSON.stringify(context.variables), session.id]
+                 variables = $1, last_message_id = $2, updated_at = NOW() WHERE id = $3`,
+                [JSON.stringify(context.variables), contextMessageId, session.id]
             );
             
             // Continue execution from target node

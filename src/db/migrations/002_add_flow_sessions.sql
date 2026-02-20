@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS flow_sessions (
     waiting_options JSONB, -- stores button IDs or list item IDs for validation
     variables JSONB DEFAULT '{}',
     execution_id INTEGER,
+    last_message_id VARCHAR(200), -- WhatsApp message ID that was responded to (to ignore duplicate clicks)
     status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'completed', 'expired')),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -18,6 +19,7 @@ CREATE TABLE IF NOT EXISTS flow_sessions (
 CREATE INDEX IF NOT EXISTS idx_flow_sessions_phone ON flow_sessions(phone);
 CREATE INDEX IF NOT EXISTS idx_flow_sessions_flow ON flow_sessions(flow_id);
 CREATE INDEX IF NOT EXISTS idx_flow_sessions_status ON flow_sessions(status);
+CREATE INDEX IF NOT EXISTS idx_flow_sessions_last_message ON flow_sessions(last_message_id);
 
 -- Add trigger for updated_at
 DROP TRIGGER IF EXISTS update_flow_sessions_updated_at ON flow_sessions;
