@@ -230,6 +230,30 @@ router.post('/send-by-phone', async (req, res, next) => {
     }
 });
 
+// Unlink a number from its flow
+router.post('/numbers/:id/unlink', async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        
+        const result = await query(
+            `UPDATE bots SET flow_id = NULL WHERE id = $1 RETURNING id, phone_number, name`,
+            [id]
+        );
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Number not found' });
+        }
+        
+        res.json({ 
+            success: true, 
+            message: 'Number unlinked from flow',
+            bot: result.rows[0]
+        });
+    } catch (error) {
+        next(error);
+    }
+});
+
 // Test send a message (for verifying the setup works)
 router.post('/test-send', async (req, res, next) => {
     try {

@@ -232,6 +232,8 @@
     
     .action-btn.test { color: #3b82f6; }
     .action-btn.test:hover { background: #eff6ff; }
+    .action-btn.unlink { color: #f59e0b; }
+    .action-btn.unlink:hover { background: #fffbeb; }
     .action-btn.delete { color: #ef4444; }
     .action-btn.delete:hover { background: #fef2f2; }
     
@@ -717,6 +719,11 @@
                   <button class="action-btn test" onclick="openTestModal(${num.id})" title="שלח הודעת בדיקה" ${!num.has_token ? 'disabled' : ''}>
                     <i class="fa-solid fa-paper-plane"></i>
                   </button>
+                  ${num.flow_id ? `
+                    <button class="action-btn unlink" onclick="unlinkFromFlow(${num.id})" title="נתק מהתהליך">
+                      <i class="fa-solid fa-link-slash"></i>
+                    </button>
+                  ` : ''}
                   <button class="action-btn delete" onclick="deleteNumber(${num.id})" title="מחק">
                     <i class="fa-solid fa-trash"></i>
                   </button>
@@ -894,6 +901,24 @@
           closeTestModal();
         } else {
           showToast('שגיאה: ' + data.error, 'error');
+        }
+      } catch (err) {
+        showToast('שגיאה: ' + err.message, 'error');
+      }
+    }
+    
+    async function unlinkFromFlow(id) {
+      if (!confirm('האם לנתק את המספר מהתהליך?')) return;
+      
+      try {
+        const res = await fetch(`/api/whatsapp/numbers/${id}/unlink`, { method: 'POST' });
+        const data = await res.json();
+        
+        if (res.ok) {
+          showToast('המספר נותק מהתהליך בהצלחה', 'success');
+          loadNumbers();
+        } else {
+          showToast(data.error || 'שגיאה בניתוק', 'error');
         }
       } catch (err) {
         showToast('שגיאה: ' + err.message, 'error');
