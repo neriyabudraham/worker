@@ -239,6 +239,22 @@
       overflow-x: visible;
       flex: 1;
       position: relative;
+      max-height: calc(100vh - 200px);
+    }
+    
+    .panel-content::-webkit-scrollbar {
+      width: 6px;
+    }
+    .panel-content::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 3px;
+    }
+    .panel-content::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+    .panel-content::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
     }
     
     .panel-content select {
@@ -450,7 +466,13 @@
     .custom-node-wrapper {
       position: relative;
       min-width: 220px;
-      max-width: 300px;
+      max-width: 280px;
+    }
+    
+    /* Nodes with buttons need more height for handles */
+    .custom-node-wrapper .node-buttons,
+    .custom-node-wrapper .node-list-items {
+      min-height: 40px;
     }
     
     .custom-node {
@@ -789,6 +811,12 @@
         title: 'הודעה',
         desc: 'שליחת הודעת וואטסאפ'
       },
+      list: { 
+        icon: 'fa-list', 
+        color: '#06b6d4', 
+        title: 'רשימת בחירה',
+        desc: 'תפריט עם אופציות לבחירה'
+      },
       condition: { 
         icon: 'fa-code-branch', 
         color: '#f97316', 
@@ -982,6 +1010,13 @@
           delay_seconds: 0
         };
         case 'message': return { text: '', buttons: [] };
+        case 'list': return { 
+          title: '', 
+          body: '', 
+          buttonText: 'בחר', 
+          items: [],
+          timeout: null 
+        };
         case 'condition': return { conditions: [{ variable: '', operator: 'equals', value: '' }] };
         case 'delay': return { duration: 1, unit: 'seconds' };
         case 'action': return { actionType: 'setVariable', variable: '', value: '' };
@@ -1202,10 +1237,11 @@
               <small>ניתן להשתמש במשתנים: {{name}}, {{phone}}</small>
             </div>
             <div class="form-group">
-              <label>כפתורים</label>
+              <label>כפתורים (מכל כפתור ניתן למשוך קו)</label>
               <div id="buttons-container" style="display: flex; flex-direction: column; gap: 8px;">
                 ${buttons.map((btn, i) => `
                   <div class="button-item" style="display: flex; gap: 8px; align-items: center;">
+                    <span style="color: #14b8a6; font-weight: 600; width: 24px;">${i + 1}.</span>
                     <input type="text" class="button-input" value="${btn}" placeholder="טקסט הכפתור" 
                       style="flex: 1; padding: 10px 14px; border: 2px solid #e5e7eb; border-radius: 10px; font-family: inherit;">
                     <button type="button" onclick="removeButton(${i})" 
@@ -1220,7 +1256,46 @@
                 <i class="fa-solid fa-plus"></i>
                 הוסף כפתור
               </button>
-              <small style="margin-top: 8px; display: block;">עד 3 כפתורים בהודעה</small>
+              <small style="margin-top: 8px; display: block;">עד 3 כפתורים בהודעה. מכל כפתור יוצא חיבור נפרד.</small>
+            </div>
+          `;
+        case 'list':
+          const items = data.items || [];
+          return `
+            <div class="form-group">
+              <label>כותרת הרשימה</label>
+              <input type="text" id="ed-listTitle" value="${data.title || ''}" placeholder="כותרת הרשימה">
+            </div>
+            <div class="form-group">
+              <label>תוכן ההודעה</label>
+              <textarea id="ed-listBody" placeholder="טקסט שיופיע מעל הרשימה...">${data.body || ''}</textarea>
+            </div>
+            <div class="form-group">
+              <label>טקסט הכפתור</label>
+              <input type="text" id="ed-listButtonText" value="${data.buttonText || 'בחר'}" placeholder="בחר">
+              <small>הטקסט שיופיע על כפתור פתיחת הרשימה</small>
+            </div>
+            <div class="form-group">
+              <label>פריטים ברשימה (מכל פריט ניתן למשוך קו)</label>
+              <div id="list-items-container" style="display: flex; flex-direction: column; gap: 8px;">
+                ${items.map((item, i) => `
+                  <div class="list-item" style="display: flex; gap: 8px; align-items: center; padding: 10px; background: #f0f9ff; border-radius: 10px; border: 1px solid #bae6fd;">
+                    <span style="color: #06b6d4; font-weight: 600; width: 24px;">${i + 1}.</span>
+                    <input type="text" class="list-item-input" value="${item.title || item}" placeholder="שם הפריט" 
+                      style="flex: 1; padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-family: inherit;">
+                    <button type="button" onclick="removeListItem(${i})" 
+                      style="width: 32px; height: 32px; border: none; background: #fef2f2; color: #ef4444; border-radius: 6px; cursor: pointer;">
+                      <i class="fa-solid fa-times"></i>
+                    </button>
+                  </div>
+                `).join('')}
+              </div>
+              <button type="button" onclick="addListItem()" 
+                style="margin-top: 12px; width: 100%; padding: 12px; background: #ecfeff; color: #06b6d4; border: 2px dashed #67e8f9; border-radius: 12px; cursor: pointer; font-family: inherit; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <i class="fa-solid fa-plus"></i>
+                הוסף פריט
+              </button>
+              <small style="margin-top: 8px; display: block;">עד 10 פריטים ברשימה. מכל פריט יוצא חיבור נפרד.</small>
             </div>
           `;
         case 'condition':
@@ -1313,6 +1388,7 @@
       div.className = 'button-item';
       div.style.cssText = 'display: flex; gap: 8px; align-items: center;';
       div.innerHTML = `
+        <span style="color: #14b8a6; font-weight: 600; width: 24px;">${index + 1}.</span>
         <input type="text" class="button-input" value="" placeholder="טקסט הכפתור" 
           style="flex: 1; padding: 10px 14px; border: 2px solid #e5e7eb; border-radius: 10px; font-family: inherit;">
         <button type="button" onclick="removeButton(${index})" 
@@ -1328,6 +1404,10 @@
       const items = container.querySelectorAll('.button-item');
       if (items[index]) {
         items[index].remove();
+        // Re-index buttons
+        container.querySelectorAll('.button-item').forEach((item, i) => {
+          item.querySelector('span').textContent = (i + 1) + '.';
+        });
       }
     }
     
@@ -1336,6 +1416,53 @@
       if (!container) return [];
       const inputs = container.querySelectorAll('.button-input');
       return Array.from(inputs).map(input => input.value).filter(v => v.trim());
+    }
+    
+    // List item management
+    function addListItem() {
+      const container = document.getElementById('list-items-container');
+      const items = container.querySelectorAll('.list-item');
+      if (items.length >= 10) {
+        showToast('מקסימום 10 פריטים');
+        return;
+      }
+      
+      const index = items.length;
+      const div = document.createElement('div');
+      div.className = 'list-item';
+      div.style.cssText = 'display: flex; gap: 8px; align-items: center; padding: 10px; background: #f0f9ff; border-radius: 10px; border: 1px solid #bae6fd;';
+      div.innerHTML = `
+        <span style="color: #06b6d4; font-weight: 600; width: 24px;">${index + 1}.</span>
+        <input type="text" class="list-item-input" value="" placeholder="שם הפריט" 
+          style="flex: 1; padding: 8px 12px; border: 2px solid #e5e7eb; border-radius: 8px; font-family: inherit;">
+        <button type="button" onclick="removeListItem(${index})" 
+          style="width: 32px; height: 32px; border: none; background: #fef2f2; color: #ef4444; border-radius: 6px; cursor: pointer;">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      `;
+      container.appendChild(div);
+    }
+    
+    function removeListItem(index) {
+      const container = document.getElementById('list-items-container');
+      const items = container.querySelectorAll('.list-item');
+      if (items[index]) {
+        items[index].remove();
+        // Re-index items
+        container.querySelectorAll('.list-item').forEach((item, i) => {
+          item.querySelector('span').textContent = (i + 1) + '.';
+        });
+      }
+    }
+    
+    function getListItemsFromEditor() {
+      const container = document.getElementById('list-items-container');
+      if (!container) return [];
+      const inputs = container.querySelectorAll('.list-item-input');
+      return Array.from(inputs).map((input, i) => ({
+        id: `item_${i}`,
+        title: input.value
+      })).filter(item => item.title.trim());
     }
 
     function toggleAccessModeFields() {
@@ -1373,6 +1500,12 @@
         case 'message':
           newData.text = document.getElementById('ed-text')?.value;
           newData.buttons = getButtonsFromEditor();
+          break;
+        case 'list':
+          newData.title = document.getElementById('ed-listTitle')?.value;
+          newData.body = document.getElementById('ed-listBody')?.value;
+          newData.buttonText = document.getElementById('ed-listButtonText')?.value || 'בחר';
+          newData.items = getListItemsFromEditor();
           break;
         case 'condition':
           newData.conditions = [{
@@ -1424,7 +1557,12 @@
         case 'trigger':
           return data.bot_phone ? `מספר: ${data.bot_phone}` : 'לא מוגדר מספר';
         case 'message':
-          return data.text ? (data.text.length > 35 ? data.text.substring(0, 35) + '...' : data.text) : 'הודעה ריקה';
+          const btnCount = (data.buttons || []).length;
+          const msgText = data.text ? (data.text.length > 30 ? data.text.substring(0, 30) + '...' : data.text) : 'הודעה ריקה';
+          return btnCount > 0 ? `${msgText}\n${btnCount} כפתורים` : msgText;
+        case 'list':
+          const itemCount = (data.items || []).length;
+          return data.title ? `${data.title} (${itemCount} פריטים)` : `רשימה (${itemCount} פריטים)`;
         case 'condition':
           return data.conditions?.[0]?.variable || 'ללא תנאי מוגדר';
         case 'delay':
@@ -1444,10 +1582,14 @@
     // Custom Node Component - defined outside FlowCanvas to prevent re-creation
     function CustomNodeComponent({ data, type, id, selected }) {
       const config = nodeTypeConfigs[type] || {};
-      const content = getNodeContent(type, data);
       const canDelete = config.canDelete !== false;
       const canDuplicate = config.canDuplicate !== false;
       const hasTarget = type !== 'trigger';
+      
+      // Get items for multiple handles (buttons or list items)
+      const buttons = (type === 'message' && data.buttons) ? data.buttons : [];
+      const listItems = (type === 'list' && data.items) ? data.items : [];
+      const hasMultipleOutputs = buttons.length > 0 || listItems.length > 0;
       
       const handleEdit = (e) => {
         e.stopPropagation();
@@ -1466,6 +1608,124 @@
         e.stopPropagation();
         if (!canDelete) return;
         deleteNode(id);
+      };
+      
+      // Render button/item handles
+      const renderItemHandles = () => {
+        const items = type === 'message' ? buttons : listItems;
+        if (items.length === 0) {
+          // Default single output handle
+          return React.createElement(Handle, {
+            type: 'source',
+            position: Position.Right,
+            style: { background: config.color }
+          });
+        }
+        
+        // Multiple output handles for each button/item
+        const handleElements = items.map((item, index) => {
+          const itemTitle = typeof item === 'string' ? item : (item.title || `פריט ${index + 1}`);
+          const topPercent = ((index + 1) / (items.length + 1)) * 100;
+          return React.createElement(Handle, {
+            key: `handle_${index}`,
+            type: 'source',
+            position: Position.Right,
+            id: `btn_${index}`,
+            style: { 
+              background: config.color,
+              top: `${topPercent}%`,
+              transform: 'translate(50%, -50%)'
+            }
+          });
+        });
+        
+        // Also add default "next" handle at bottom
+        handleElements.push(
+          React.createElement(Handle, {
+            key: 'handle_next',
+            type: 'source',
+            position: Position.Right,
+            id: 'next',
+            style: { 
+              background: '#94a3b8',
+              bottom: '10px',
+              top: 'auto',
+              transform: 'translate(50%, 0)'
+            }
+          })
+        );
+        
+        return handleElements;
+      };
+      
+      // Render button preview in node body
+      const renderNodeBody = () => {
+        if (type === 'message') {
+          const text = data.text ? (data.text.length > 30 ? data.text.substring(0, 30) + '...' : data.text) : 'הודעה ריקה';
+          return React.createElement('div', { className: 'node-body' },
+            React.createElement('div', { className: 'node-content' }, text),
+            buttons.length > 0 && React.createElement('div', { 
+              className: 'node-buttons',
+              style: { marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }
+            },
+              buttons.map((btn, i) => React.createElement('div', {
+                key: i,
+                style: {
+                  padding: '6px 10px',
+                  background: '#f0fdf4',
+                  border: '1px solid #86efac',
+                  borderRadius: '6px',
+                  fontSize: '0.75rem',
+                  color: '#16a34a',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }
+              },
+                React.createElement('i', { className: 'fa-solid fa-hand-pointer', style: { fontSize: '0.65rem' } }),
+                btn
+              ))
+            )
+          );
+        }
+        
+        if (type === 'list') {
+          const title = data.title || 'רשימת בחירה';
+          return React.createElement('div', { className: 'node-body' },
+            React.createElement('div', { className: 'node-content' }, title),
+            listItems.length > 0 && React.createElement('div', { 
+              className: 'node-list-items',
+              style: { marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '3px' }
+            },
+              listItems.slice(0, 5).map((item, i) => React.createElement('div', {
+                key: i,
+                style: {
+                  padding: '5px 8px',
+                  background: '#ecfeff',
+                  border: '1px solid #67e8f9',
+                  borderRadius: '5px',
+                  fontSize: '0.7rem',
+                  color: '#0891b2',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }
+              },
+                React.createElement('span', { style: { fontWeight: '600' } }, `${i + 1}.`),
+                typeof item === 'string' ? item : item.title
+              )),
+              listItems.length > 5 && React.createElement('div', {
+                style: { fontSize: '0.65rem', color: '#94a3b8', textAlign: 'center' }
+              }, `+${listItems.length - 5} עוד...`)
+            )
+          );
+        }
+        
+        // Default body
+        const content = getNodeContent(type, data);
+        return content ? React.createElement('div', { className: 'node-body' },
+          React.createElement('div', { className: 'node-content' }, content)
+        ) : null;
       };
       
       return React.createElement('div', { className: 'custom-node-wrapper' },
@@ -1509,17 +1769,11 @@
             }, React.createElement('i', { className: `fa-solid ${config.icon}` })),
             React.createElement('span', { className: 'node-title' }, data.label || config.title)
           ),
-          content && React.createElement('div', { className: 'node-body' },
-            React.createElement('div', { className: 'node-content' }, content)
-          )
+          renderNodeBody()
         ),
         
-        // Source Handle (right - output)
-        React.createElement(Handle, {
-          type: 'source',
-          position: Position.Right,
-          style: { background: config.color }
-        })
+        // Source Handles (right - output)
+        renderItemHandles()
       );
     }
     
@@ -1527,6 +1781,7 @@
     const nodeTypes = {
       trigger: (props) => React.createElement(CustomNodeComponent, { ...props, type: 'trigger' }),
       message: (props) => React.createElement(CustomNodeComponent, { ...props, type: 'message' }),
+      list: (props) => React.createElement(CustomNodeComponent, { ...props, type: 'list' }),
       condition: (props) => React.createElement(CustomNodeComponent, { ...props, type: 'condition' }),
       delay: (props) => React.createElement(CustomNodeComponent, { ...props, type: 'delay' }),
       action: (props) => React.createElement(CustomNodeComponent, { ...props, type: 'action' }),

@@ -150,6 +150,10 @@ class FlowExecutor {
             case 'message':
                 await this.executeMessageNode(context, config);
                 break;
+            
+            case 'list':
+                await this.executeListNode(context, config);
+                break;
                 
             case 'delay':
                 await this.executeDelayNode(context, config);
@@ -199,6 +203,44 @@ class FlowExecutor {
             console.log('[FLOW] Message sent successfully');
         } catch (error) {
             console.error('[FLOW] Failed to send message:', error);
+            console.error('[FLOW] Error details:', JSON.stringify(error));
+        }
+    }
+    
+    async executeListNode(context, config) {
+        console.log('[FLOW] List node config:', JSON.stringify(config));
+        
+        const title = this.replaceVariables(config.title || 'בחר אופציה', context);
+        const body = this.replaceVariables(config.body || '', context);
+        const buttonText = config.buttonText || 'בחר';
+        const items = config.items || [];
+        
+        console.log('[FLOW] Sending list to:', context.phone);
+        console.log('[FLOW] List title:', title);
+        console.log('[FLOW] Items count:', items.length);
+        
+        if (items.length === 0) {
+            console.log('[FLOW] Skipping empty list');
+            return;
+        }
+        
+        try {
+            await context.wa.sendListMessage(context.phone, {
+                title,
+                body: body || title,
+                buttonText,
+                sections: [{
+                    title: title,
+                    rows: items.map((item, index) => ({
+                        id: item.id || `item_${index}`,
+                        title: typeof item === 'string' ? item : (item.title || `פריט ${index + 1}`),
+                        description: item.description || ''
+                    }))
+                }]
+            });
+            console.log('[FLOW] List sent successfully');
+        } catch (error) {
+            console.error('[FLOW] Failed to send list:', error);
             console.error('[FLOW] Error details:', JSON.stringify(error));
         }
     }

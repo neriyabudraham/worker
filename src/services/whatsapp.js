@@ -113,7 +113,34 @@ class WhatsAppService {
         return this.makeRequest('POST', `${this.phoneNumberId}/messages`, body);
     }
 
-    async sendListMessage(to, text, buttonText, sections) {
+    async sendListMessage(to, options) {
+        // Support both old format (to, text, buttonText, sections) and new object format
+        let title, bodyText, buttonText, sections;
+        
+        if (typeof options === 'string') {
+            // Old format: (to, text, buttonText, sections)
+            bodyText = options;
+            buttonText = arguments[2];
+            sections = arguments[3];
+            title = '';
+        } else {
+            // New object format
+            title = options.title || '';
+            bodyText = options.body || options.title || '';
+            buttonText = options.buttonText || 'בחר';
+            sections = options.sections || [];
+        }
+        
+        // Format sections properly
+        const formattedSections = sections.map((section, sIndex) => ({
+            title: section.title || `קטגוריה ${sIndex + 1}`,
+            rows: (section.rows || []).slice(0, 10).map((row, rIndex) => ({
+                id: row.id || `row_${sIndex}_${rIndex}`,
+                title: (row.title || `פריט ${rIndex + 1}`).substring(0, 24),
+                description: (row.description || '').substring(0, 72)
+            }))
+        }));
+        
         const body = {
             messaging_product: 'whatsapp',
             recipient_type: 'individual',
@@ -121,14 +148,23 @@ class WhatsAppService {
             type: 'interactive',
             interactive: {
                 type: 'list',
-                body: { text: text },
+                header: title ? { type: 'text', text: title.substring(0, 60) } : undefined,
+                body: { text: bodyText.substring(0, 1024) },
                 action: {
-                    button: buttonText,
-                    sections: sections
+                    button: buttonText.substring(0, 20),
+                    sections: formattedSections
                 }
             }
         };
+        
+        // Remove undefined header
+        if (!body.interactive.header) {
+            delete body.interactive.header;
+        }
 
+        console.log('[WA] Sending list message to:', to);
+        console.log('[WA] Sections:', JSON.stringify(formattedSections));
+        
         return this.makeRequest('POST', `${this.phoneNumberId}/messages`, body);
     }
 
