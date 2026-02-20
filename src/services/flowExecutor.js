@@ -125,10 +125,15 @@ class FlowExecutor {
             context.variables.last_selection_id = selectedId;
             
             // Find edges from current node that match the selected button/item
-            const btnIndex = selectedId.replace('btn_', '').replace('item_', '');
+            // Handle IDs are now simple numeric strings: "0", "1", "2" etc.
+            // But we also support legacy formats for backward compatibility
+            const numericId = selectedId.replace(/[^0-9]/g, ''); // Extract numeric part
             const matchingEdges = context.edges.filter(e => 
                 e.source_node_id === currentNodeId && 
-                (e.source_handle === selectedId || e.source_handle === `btn_${btnIndex}` || e.source_handle === `item_${btnIndex}`)
+                (e.source_handle === selectedId || 
+                 e.source_handle === numericId ||
+                 e.source_handle === `btn_${numericId}` || 
+                 e.source_handle === `item_${numericId}`)
             );
             
             console.log('[FLOW] Found', matchingEdges.length, 'matching edges for', selectedId);
@@ -232,18 +237,26 @@ class FlowExecutor {
                 if (clickedOption) {
                     const optionIndex = waitingOptions.indexOf(clickedOption);
                     console.log('[FLOW] Clicked option index:', optionIndex);
-                    console.log('[FLOW] Looking for edge with sourceHandle: btn_' + optionIndex);
+                    console.log('[FLOW] Looking for edge with sourceHandle:', optionIndex);
                     
-                    targetEdge = outgoingEdges.find(e => e.source_handle === `btn_${optionIndex}`);
+                    // New format: simple numeric string "0", "1", "2"
+                    targetEdge = outgoingEdges.find(e => e.source_handle === String(optionIndex));
+                    
+                    // Fallback: legacy format "btn_0", "btn_1"
+                    if (!targetEdge) {
+                        targetEdge = outgoingEdges.find(e => e.source_handle === `btn_${optionIndex}`);
+                    }
                 }
                 
                 // Fallback: try direct ID matching
                 if (!targetEdge) {
-                    console.log('[FLOW] Trying direct ID match for:', selectedId);
+                    const numericId = selectedId.replace(/[^0-9]/g, '');
+                    console.log('[FLOW] Trying direct ID match for:', selectedId, 'numeric:', numericId);
                     targetEdge = outgoingEdges.find(e => 
                         e.source_handle === selectedId || 
-                        e.source_handle === `btn_${selectedId.replace('btn_', '')}` ||
-                        e.source_handle === `item_${selectedId.replace('item_', '')}`
+                        e.source_handle === numericId ||
+                        e.source_handle === `btn_${numericId}` ||
+                        e.source_handle === `item_${numericId}`
                     );
                 }
             }
@@ -531,9 +544,13 @@ class FlowExecutor {
                 console.log('[FLOW] WhatsApp API response:', JSON.stringify(result));
                 
                 // Check if there are edges from button handles
+                // New format: "0", "1", "2"... or legacy "btn_0", "btn_1"...
                 const buttonEdges = context.edges.filter(e => 
                     e.source_node_id === node.node_id && 
-                    e.source_handle && e.source_handle.startsWith('btn_')
+                    e.source_handle && (
+                        /^\d+$/.test(e.source_handle) || // New numeric format
+                        e.source_handle.startsWith('btn_') // Legacy format
+                    )
                 );
                 
                 if (buttonEdges.length > 0) {
@@ -588,7 +605,7 @@ class FlowExecutor {
                 sections: [{
                     title: title,
                     rows: items.map((item, index) => ({
-                        id: item.id || `item_${index}`,
+                        id: item.id || String(index), // Use simple numeric ID to match handle format
                         title: typeof item === 'string' ? item : (item.title || `פריט ${index + 1}`),
                         description: item.description || ''
                     }))
@@ -598,9 +615,15 @@ class FlowExecutor {
             console.log('[FLOW] WhatsApp API response:', JSON.stringify(result));
             
             // Check if there are edges from item handles
+            // New format: "0", "1", "2"... or legacy "btn_0", "item_0"...
             const itemEdges = context.edges.filter(e => 
                 e.source_node_id === node.node_id && 
-                e.source_handle && (e.source_handle.startsWith('btn_') || e.source_handle.startsWith('item_'))
+                e.source_handle && (
+                    /^\d+$/.test(e.source_handle) || // New numeric format
+                    e.source_handle === 'timeout' || // Timeout handle
+                    e.source_handle.startsWith('btn_') || // Legacy format
+                    e.source_handle.startsWith('item_') // Legacy format
+                )
             );
             
             if (itemEdges.length > 0) {

@@ -594,6 +594,21 @@
       right: -7px !important;
     }
     
+    /* Inline button/list handles - positioned inside button rows */
+    .node-buttons .react-flow__handle,
+    .node-list-items .react-flow__handle {
+      width: 12px !important;
+      height: 12px !important;
+      border: 2px solid white !important;
+      right: -8px !important;
+      transform: translateY(-50%) !important;
+      cursor: crosshair !important;
+    }
+    .node-buttons .react-flow__handle:hover,
+    .node-list-items .react-flow__handle:hover {
+      transform: translateY(-50%) scale(1.3) !important;
+    }
+    
     /* Edge styles */
     .react-flow__edge {
       cursor: pointer !important;
@@ -1599,6 +1614,7 @@
     }
     
     // Custom Node Component - defined outside FlowCanvas to prevent re-creation
+    // Following botomat pattern - inline handles within button rows
     function CustomNodeComponent({ data, type, id, selected }) {
       const config = nodeTypeConfigs[type] || {};
       const canDelete = config.canDelete !== false;
@@ -1608,7 +1624,7 @@
       // Get items for multiple handles (buttons or list items)
       const buttons = (type === 'message' && data.buttons) ? data.buttons : [];
       const listItems = (type === 'list' && data.items) ? data.items : [];
-      const hasMultipleOutputs = buttons.length > 0 || listItems.length > 0;
+      const hasInteractiveItems = buttons.length > 0 || listItems.length > 0;
       
       const handleEdit = (e) => {
         e.stopPropagation();
@@ -1629,124 +1645,162 @@
         deleteNode(id);
       };
       
-      // Render button/item handles - each button gets its own handle
-      const renderItemHandles = () => {
-        const items = type === 'message' ? buttons : listItems;
-        if (items.length === 0) {
-          // Default single output handle
-          return React.createElement(Handle, {
-            type: 'source',
-            position: Position.Right,
-            style: { background: config.color }
-          });
-        }
-        
-        // Multiple output handles - one per button/item, NO extra "next" handle
-        return items.map((item, index) => {
-          const itemTitle = typeof item === 'string' ? item : (item.title || `פריט ${index + 1}`);
-          // Distribute handles evenly across the node height
-          const topPercent = ((index + 1) / (items.length + 1)) * 100;
-          return React.createElement(Handle, {
-            key: `handle_${index}`,
-            type: 'source',
-            position: Position.Right,
-            id: `btn_${index}`,
-            title: itemTitle, // Tooltip showing button text
-            style: { 
-              background: config.color,
-              top: `${topPercent}%`,
-              transform: 'translate(50%, -50%)',
-              cursor: 'crosshair'
-            }
-          });
-        });
-      };
-      
-      // Render button preview in node body
+      // Render the node body with inline handles for buttons/list items
       const renderNodeBody = () => {
+        // Message node with buttons - each button has inline handle
         if (type === 'message') {
-          const text = data.text ? (data.text.length > 30 ? data.text.substring(0, 30) + '...' : data.text) : 'הודעה ריקה';
+          const text = data.text ? (data.text.length > 40 ? data.text.substring(0, 40) + '...' : data.text) : 'הודעה ריקה';
           return React.createElement('div', { className: 'node-body' },
-            React.createElement('div', { className: 'node-content' }, text),
+            // Message text
+            React.createElement('div', { className: 'node-content', style: { marginBottom: buttons.length > 0 ? '10px' : '0' } }, text),
+            // Buttons with inline handles
             buttons.length > 0 && React.createElement('div', { 
               className: 'node-buttons',
-              style: { marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }
+              style: { display: 'flex', flexDirection: 'column', gap: '6px' }
             },
               buttons.map((btn, i) => React.createElement('div', {
                 key: i,
                 style: {
-                  padding: '6px 10px',
+                  position: 'relative',
+                  padding: '8px 12px',
                   background: '#f0fdf4',
                   border: '1px solid #86efac',
-                  borderRadius: '6px',
-                  fontSize: '0.75rem',
+                  borderRadius: '8px',
+                  fontSize: '0.8rem',
                   color: '#16a34a',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '6px'
+                  justifyContent: 'space-between'
                 }
               },
-                React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
-                  React.createElement('i', { className: 'fa-solid fa-hand-pointer', style: { fontSize: '0.65rem' } }),
-                  btn
+                React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: '8px', flex: 1, overflow: 'hidden' } },
+                  React.createElement('i', { className: 'fa-solid fa-hand-pointer', style: { fontSize: '0.7rem', flexShrink: 0 } }),
+                  React.createElement('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, btn)
                 ),
-                React.createElement('span', { 
+                // Inline Handle for this button
+                React.createElement(Handle, {
+                  type: 'source',
+                  position: Position.Right,
+                  id: String(i), // Simple index like botomat
                   style: { 
-                    background: '#16a34a', 
-                    color: 'white', 
-                    borderRadius: '50%', 
-                    width: '18px', 
-                    height: '18px', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    fontSize: '0.65rem',
-                    fontWeight: 'bold'
-                  } 
-                }, i + 1)
+                    top: '50%', 
+                    right: '-8px',
+                    width: '12px',
+                    height: '12px',
+                    background: '#16a34a',
+                    border: '2px solid white',
+                    position: 'absolute',
+                    transform: 'translateY(-50%)'
+                  }
+                })
               ))
             )
           );
         }
         
+        // List node with items - each item has inline handle
         if (type === 'list') {
           const title = data.title || 'רשימת בחירה';
+          const body = data.body ? (data.body.length > 30 ? data.body.substring(0, 30) + '...' : data.body) : '';
           return React.createElement('div', { className: 'node-body' },
-            React.createElement('div', { className: 'node-content' }, title),
+            // Title & body
+            React.createElement('div', { className: 'node-content' },
+              React.createElement('div', { style: { fontWeight: '600', color: '#0891b2' } }, title),
+              body && React.createElement('div', { style: { fontSize: '0.75rem', color: '#64748b', marginTop: '2px' } }, body)
+            ),
+            // List items with inline handles
             listItems.length > 0 && React.createElement('div', { 
               className: 'node-list-items',
-              style: { marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '3px' }
+              style: { marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }
             },
-              listItems.slice(0, 5).map((item, i) => React.createElement('div', {
-                key: i,
-                style: {
-                  padding: '5px 8px',
-                  background: '#ecfeff',
-                  border: '1px solid #67e8f9',
-                  borderRadius: '5px',
-                  fontSize: '0.7rem',
-                  color: '#0891b2',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px'
+              listItems.map((item, i) => {
+                const itemTitle = typeof item === 'string' ? item : (item.title || `פריט ${i + 1}`);
+                return React.createElement('div', {
+                  key: i,
+                  style: {
+                    position: 'relative',
+                    padding: '8px 12px',
+                    background: '#ecfeff',
+                    border: '1px solid #67e8f9',
+                    borderRadius: '8px',
+                    fontSize: '0.8rem',
+                    color: '#0891b2',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }
+                },
+                  React.createElement('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 } }, itemTitle),
+                  // Inline Handle for this list item
+                  React.createElement(Handle, {
+                    type: 'source',
+                    position: Position.Right,
+                    id: String(i), // Simple index
+                    style: { 
+                      top: '50%', 
+                      right: '-8px',
+                      width: '12px',
+                      height: '12px',
+                      background: '#0891b2',
+                      border: '2px solid white',
+                      position: 'absolute',
+                      transform: 'translateY(-50%)'
+                    }
+                  })
+                );
+              })
+            ),
+            // No response / timeout handle at bottom
+            listItems.length > 0 && React.createElement('div', {
+              style: {
+                position: 'relative',
+                marginTop: '8px',
+                padding: '6px 12px',
+                borderTop: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }
+            },
+              React.createElement('span', { style: { fontSize: '0.75rem', color: '#94a3b8' } }, '⏰ אין תגובה'),
+              React.createElement(Handle, {
+                type: 'source',
+                position: Position.Right,
+                id: 'timeout',
+                style: { 
+                  top: '50%', 
+                  right: '-8px',
+                  width: '12px',
+                  height: '12px',
+                  background: '#94a3b8',
+                  border: '2px solid white',
+                  position: 'absolute',
+                  transform: 'translateY(-50%)'
                 }
-              },
-                React.createElement('span', { style: { fontWeight: '600' } }, `${i + 1}.`),
-                typeof item === 'string' ? item : item.title
-              )),
-              listItems.length > 5 && React.createElement('div', {
-                style: { fontSize: '0.65rem', color: '#94a3b8', textAlign: 'center' }
-              }, `+${listItems.length - 5} עוד...`)
+              })
             )
           );
         }
         
-        // Default body
+        // Default body for other node types
         const content = getNodeContent(type, data);
         return content ? React.createElement('div', { className: 'node-body' },
           React.createElement('div', { className: 'node-content' }, content)
         ) : null;
+      };
+      
+      // Render default source handle (for nodes without interactive items)
+      const renderDefaultSourceHandle = () => {
+        // Message with buttons - handles are inline, don't add default
+        if (type === 'message' && buttons.length > 0) return null;
+        // List with items - handles are inline + timeout, don't add default
+        if (type === 'list' && listItems.length > 0) return null;
+        
+        // Default single output handle for all other cases
+        return React.createElement(Handle, {
+          type: 'source',
+          position: Position.Right,
+          style: { background: config.color }
+        });
       };
       
       return React.createElement('div', { className: 'custom-node-wrapper' },
@@ -1793,8 +1847,8 @@
           renderNodeBody()
         ),
         
-        // Source Handles (right - output)
-        renderItemHandles()
+        // Default Source Handle (only for nodes without interactive items)
+        renderDefaultSourceHandle()
       );
     }
     
@@ -1840,12 +1894,19 @@
         let edgeLabel = '';
         
         if (sourceNode && connection.sourceHandle) {
-          const btnIndex = connection.sourceHandle.replace('btn_', '').replace('item_', '');
-          if (sourceNode.type === 'message' && sourceNode.data?.buttons?.[btnIndex]) {
-            edgeLabel = sourceNode.data.buttons[btnIndex];
-          } else if (sourceNode.type === 'list' && sourceNode.data?.items?.[btnIndex]) {
-            const item = sourceNode.data.items[btnIndex];
-            edgeLabel = typeof item === 'string' ? item : item.title;
+          // Handle is now a simple numeric string "0", "1", "2" or "timeout"
+          const handleId = connection.sourceHandle;
+          
+          if (handleId === 'timeout') {
+            edgeLabel = 'אין תגובה';
+          } else if (/^\d+$/.test(handleId)) {
+            const index = parseInt(handleId, 10);
+            if (sourceNode.type === 'message' && sourceNode.data?.buttons?.[index]) {
+              edgeLabel = sourceNode.data.buttons[index];
+            } else if (sourceNode.type === 'list' && sourceNode.data?.items?.[index]) {
+              const item = sourceNode.data.items[index];
+              edgeLabel = typeof item === 'string' ? item : item.title;
+            }
           }
         }
         

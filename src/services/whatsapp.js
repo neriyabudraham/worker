@@ -81,9 +81,10 @@ class WhatsAppService {
 
     async sendButtonMessage(to, text, buttons) {
         // Support both string array and object array formats
+        // Use simple numeric IDs ("0", "1", "2") to match handle format
         const formattedButtons = buttons.slice(0, 3).map((btn, index) => {
             const title = typeof btn === 'string' ? btn : (btn.title || btn.text || btn.label || `כפתור ${index + 1}`);
-            const id = typeof btn === 'string' ? `btn_${index}` : (btn.id || `btn_${index}`);
+            const id = typeof btn === 'string' ? String(index) : (btn.id || String(index));
             return {
                 type: 'reply',
                 reply: {
