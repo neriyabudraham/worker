@@ -4,8 +4,10 @@ const { WhatsAppService } = require('./whatsapp');
 class FlowExecutor {
     /**
      * Check if there's an active session for this phone/flow
-     * If yes, handle the response (button click, etc.)
-     * If no, start a new flow execution
+     * Handle based on message type:
+     * - Text message: Start new flow
+     * - Button click: Execute button path (each button clickable once)
+     * - List selection: Execute item path (can select multiple times)
      */
     async handleIncomingMessage(flowId, messageData, originalPayload) {
         console.log('[FLOW] ========================================');
@@ -15,62 +17,139 @@ class FlowExecutor {
         console.log('[FLOW] Message:', messageData.message);
         console.log('[FLOW] Type:', messageData.type);
         
-        // Get the context message ID (the original message being replied to)
-        const contextMessageId = originalPayload?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.context?.id;
-        const isInteractiveReply = originalPayload?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.interactive;
+        // Extract message details
+        const waMessage = originalPayload?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+        const contextMessageId = waMessage?.context?.id;
+        const interactive = waMessage?.interactive;
+        const isButtonReply = interactive?.type === 'button_reply';
+        const isListReply = interactive?.type === 'list_reply';
+        const isTextMessage = waMessage?.type === 'text';
         
         console.log('[FLOW] Context message ID:', contextMessageId || 'none');
-        console.log('[FLOW] Is interactive reply:', !!isInteractiveReply);
+        console.log('[FLOW] Message type: ', isButtonReply ? 'BUTTON' : isListReply ? 'LIST' : isTextMessage ? 'TEXT' : 'OTHER');
         
-        // Check for active session
-        const sessionResult = await query(
-            `SELECT * FROM flow_sessions 
-             WHERE flow_id = $1 AND phone = $2 AND status = 'active'
-             ORDER BY created_at DESC LIMIT 1`,
-            [flowId, messageData.phone]
-        );
-        
-        let session = sessionResult.rows[0];
-        
-        // If there's an active session waiting for response
-        if (session && session.waiting_for) {
-            console.log('[FLOW] Found active session waiting for:', session.waiting_for);
-            console.log('[FLOW] Current node:', session.current_node_id);
-            return await this.handleSessionResponse(session, messageData, originalPayload);
+        // ============================================
+        // CASE 1: Text message - Always start fresh flow
+        // ============================================
+        if (isTextMessage) {
+            console.log('[FLOW] TEXT MESSAGE - Starting new flow');
+            return await this.executeFlow(flowId, messageData, originalPayload);
         }
         
-        // Check if this is a button/list reply to a recently completed session
-        // This handles the case where user clicks multiple buttons on the same message
-        if (isInteractiveReply && contextMessageId) {
-            console.log('[FLOW] Checking for recently completed session...');
+        // ============================================
+        // CASE 2: Button reply - Execute button path (each button once)
+        // ============================================
+        if (isButtonReply && contextMessageId) {
+            const buttonId = interactive.button_reply.id;
+            const buttonTitle = interactive.button_reply.title;
+            console.log('[FLOW] BUTTON REPLY - ID:', buttonId, 'Title:', buttonTitle);
             
-            // Check if there's a completed session that already responded to this message
-            const recentSession = await query(
-                `SELECT * FROM flow_sessions 
-                 WHERE flow_id = $1 AND phone = $2 
-                 AND status = 'completed'
-                 AND last_message_id = $3
-                 AND updated_at > NOW() - INTERVAL '5 minutes'
-                 ORDER BY updated_at DESC LIMIT 1`,
-                [flowId, messageData.phone, contextMessageId]
+            // Check if this specific button was already clicked
+            const clickedResult = await query(
+                `SELECT * FROM flow_button_clicks 
+                 WHERE flow_id = $1 AND phone = $2 AND message_id = $3 AND button_id = $4`,
+                [flowId, messageData.phone, contextMessageId, buttonId]
             );
             
-            if (recentSession.rows.length > 0) {
-                console.log('[FLOW] IGNORING: Already responded to this message');
-                console.log('[FLOW] Previous response was at:', recentSession.rows[0].updated_at);
-                return { success: true, ignored: true, reason: 'already_responded' };
+            if (clickedResult.rows.length > 0) {
+                console.log('[FLOW] Button already clicked, ignoring');
+                return { success: true, ignored: true, reason: 'button_already_clicked' };
             }
+            
+            // Mark button as clicked
+            await query(
+                `INSERT INTO flow_button_clicks (flow_id, phone, message_id, button_id, button_title)
+                 VALUES ($1, $2, $3, $4, $5)
+                 ON CONFLICT DO NOTHING`,
+                [flowId, messageData.phone, contextMessageId, buttonId, buttonTitle]
+            );
+            
+            // Find and execute the button's path
+            return await this.executeButtonPath(flowId, messageData, originalPayload, contextMessageId, buttonId);
         }
         
-        // If this is an interactive reply but no active session, check if session exists
-        if (isInteractiveReply && session) {
-            console.log('[FLOW] Interactive reply detected with session');
-            return await this.handleSessionResponse(session, messageData, originalPayload);
+        // ============================================
+        // CASE 3: List reply - Execute item path (can select multiple times)
+        // ============================================
+        if (isListReply && contextMessageId) {
+            const itemId = interactive.list_reply.id;
+            const itemTitle = interactive.list_reply.title;
+            console.log('[FLOW] LIST REPLY - ID:', itemId, 'Title:', itemTitle);
+            
+            // Always execute list selection (no "already clicked" check)
+            return await this.executeButtonPath(flowId, messageData, originalPayload, contextMessageId, itemId);
         }
         
-        // No active session or session not waiting - start fresh
-        console.log('[FLOW] Starting new flow execution');
+        // ============================================
+        // CASE 4: Other interactive or fallback
+        // ============================================
+        console.log('[FLOW] Unknown message type, starting new flow');
         return await this.executeFlow(flowId, messageData, originalPayload);
+    }
+    
+    /**
+     * Execute the path for a specific button/list item
+     */
+    async executeButtonPath(flowId, messageData, originalPayload, contextMessageId, selectedId) {
+        console.log('[FLOW] Executing button/list path for:', selectedId);
+        
+        try {
+            const context = await this.buildContext(flowId, messageData, originalPayload);
+            if (!context) {
+                return { success: false, error: 'Failed to build context' };
+            }
+            
+            // Find the node that sent the message with this context ID
+            // We need to find which node's message this is a response to
+            const nodeResult = await query(
+                `SELECT fs.current_node_id, fs.variables, fs.id as session_id
+                 FROM flow_sessions fs
+                 WHERE fs.flow_id = $1 AND fs.phone = $2
+                 ORDER BY fs.updated_at DESC LIMIT 1`,
+                [flowId, messageData.phone]
+            );
+            
+            if (nodeResult.rows.length === 0) {
+                console.log('[FLOW] No session found for button path');
+                return { success: false, error: 'No session found' };
+            }
+            
+            const sessionData = nodeResult.rows[0];
+            const currentNodeId = sessionData.current_node_id;
+            context.variables = sessionData.variables || {};
+            
+            console.log('[FLOW] Current node from session:', currentNodeId);
+            
+            // Save selection to variables
+            context.variables.last_selection = messageData.message;
+            context.variables.last_selection_id = selectedId;
+            
+            // Find edges from current node that match the selected button/item
+            const btnIndex = selectedId.replace('btn_', '').replace('item_', '');
+            const matchingEdges = context.edges.filter(e => 
+                e.source_node_id === currentNodeId && 
+                (e.source_handle === selectedId || e.source_handle === `btn_${btnIndex}` || e.source_handle === `item_${btnIndex}`)
+            );
+            
+            console.log('[FLOW] Found', matchingEdges.length, 'matching edges for', selectedId);
+            
+            if (matchingEdges.length === 0) {
+                console.log('[FLOW] No matching edges found');
+                return { success: false, error: 'No path for this button' };
+            }
+            
+            // Execute ALL matching edges (support multiple connections from same button)
+            for (const edge of matchingEdges) {
+                console.log('[FLOW] Executing path to:', edge.target_node_id);
+                await this.executeFromNode(context, edge.target_node_id, sessionData.session_id);
+            }
+            
+            return { success: true };
+            
+        } catch (error) {
+            console.error('[FLOW] Error executing button path:', error);
+            return { success: false, error: error.message };
+        }
     }
     
     /**
@@ -356,20 +435,29 @@ class FlowExecutor {
             return; // Stop execution here - will continue when user responds
         }
         
-        // Find and execute next nodes
+        // Find ALL outgoing edges from default handle (support multiple connections)
         const outgoingEdges = context.edges.filter(e => e.source_node_id === nodeId);
-        
-        // For nodes without buttons, follow the default/next edge
-        const defaultEdge = outgoingEdges.find(e => 
+        const defaultEdges = outgoingEdges.filter(e => 
             !e.source_handle || e.source_handle === '' || e.source_handle === 'next'
-        ) || outgoingEdges[0];
+        );
         
-        if (defaultEdge) {
-            await this.executeFromNode(context, defaultEdge.target_node_id, sessionId);
-        } else {
+        // If no default edges but there are other edges, this node waits for button click
+        if (defaultEdges.length === 0 && outgoingEdges.length > 0) {
+            console.log('[FLOW] Node has button edges only, waiting for user click');
+            return;
+        }
+        
+        if (defaultEdges.length === 0) {
             // No more edges - flow complete
             console.log('[FLOW] No more edges, flow complete');
             await this.endSession(sessionId);
+            return;
+        }
+        
+        // Execute ALL default edges (support multiple connections from same handle)
+        console.log('[FLOW] Following', defaultEdges.length, 'outgoing edges');
+        for (const edge of defaultEdges) {
+            await this.executeFromNode(context, edge.target_node_id, sessionId);
         }
     }
     
@@ -414,7 +502,7 @@ class FlowExecutor {
     }
     
     /**
-     * Execute message node - returns true if has buttons (wait for response)
+     * Execute message node - returns true if has buttons/list (waits for click)
      */
     async executeMessageNode(context, config, node, sessionId) {
         console.log('[FLOW] ----------------------------------------');
@@ -438,24 +526,22 @@ class FlowExecutor {
             if (buttons.length > 0 && text) {
                 console.log('[FLOW] Sending BUTTON message');
                 
-                // Set session to wait BEFORE sending (to ensure we catch quick responses)
-                const waitingOptions = buttons.map((btn, i) => ({
-                    id: `btn_${i}`,
-                    title: typeof btn === 'string' ? btn : btn.title
-                }));
-                
-                console.log('[FLOW] Setting wait state with options:', JSON.stringify(waitingOptions));
-                await query(
-                    `UPDATE flow_sessions SET waiting_for = 'button', waiting_options = $1, current_node_id = $2 WHERE id = $3`,
-                    [JSON.stringify(waitingOptions), node.node_id, sessionId]
-                );
-                
-                // Now send the message
+                // Send the message
                 const result = await context.wa.sendButtonMessage(context.phone, text, buttons);
                 console.log('[FLOW] WhatsApp API response:', JSON.stringify(result));
-                console.log('[FLOW] Now waiting for user button click...');
                 
-                return true; // Wait for response
+                // Check if there are edges from button handles
+                const buttonEdges = context.edges.filter(e => 
+                    e.source_node_id === node.node_id && 
+                    e.source_handle && e.source_handle.startsWith('btn_')
+                );
+                
+                if (buttonEdges.length > 0) {
+                    console.log('[FLOW] Has', buttonEdges.length, 'button edges, waiting for click');
+                    return true; // Wait for button click
+                }
+                
+                return false; // No button edges, continue
                 
             } else if (text) {
                 console.log('[FLOW] Sending TEXT message');
@@ -472,15 +558,22 @@ class FlowExecutor {
     }
     
     /**
-     * Execute list node - returns true (always waits for selection)
+     * Execute list node - returns true if has item edges (waits for selection)
      */
     async executeListNode(context, config, node, sessionId) {
-        console.log('[FLOW] List node config:', JSON.stringify(config));
+        console.log('[FLOW] ----------------------------------------');
+        console.log('[FLOW] Executing LIST node');
+        console.log('[FLOW] Node ID:', node.node_id);
+        console.log('[FLOW] Config:', JSON.stringify(config));
         
         const title = this.replaceVariables(config.title || 'בחר אופציה', context);
         const body = this.replaceVariables(config.body || '', context);
         const buttonText = config.buttonText || 'בחר';
         const items = config.items || [];
+        
+        console.log('[FLOW] To:', context.phone);
+        console.log('[FLOW] Title:', title);
+        console.log('[FLOW] Items:', items.length);
         
         if (items.length === 0) {
             console.log('[FLOW] Skipping empty list');
@@ -488,7 +581,7 @@ class FlowExecutor {
         }
         
         try {
-            await context.wa.sendListMessage(context.phone, {
+            const result = await context.wa.sendListMessage(context.phone, {
                 title,
                 body: body || title,
                 buttonText,
@@ -502,22 +595,23 @@ class FlowExecutor {
                 }]
             });
             
-            // Set session to wait for list selection
-            const waitingOptions = items.map((item, i) => ({
-                id: item.id || `item_${i}`,
-                title: typeof item === 'string' ? item : item.title
-            }));
+            console.log('[FLOW] WhatsApp API response:', JSON.stringify(result));
             
-            await query(
-                `UPDATE flow_sessions SET waiting_for = 'list', waiting_options = $1 WHERE id = $2`,
-                [JSON.stringify(waitingOptions), sessionId]
+            // Check if there are edges from item handles
+            const itemEdges = context.edges.filter(e => 
+                e.source_node_id === node.node_id && 
+                e.source_handle && (e.source_handle.startsWith('btn_') || e.source_handle.startsWith('item_'))
             );
             
-            console.log('[FLOW] Waiting for list selection');
-            return true; // Wait for response
+            if (itemEdges.length > 0) {
+                console.log('[FLOW] Has', itemEdges.length, 'item edges, waiting for selection');
+                return true; // Wait for list selection
+            }
+            
+            return false; // No item edges, continue
             
         } catch (error) {
-            console.error('[FLOW] Failed to send list:', error);
+            console.error('[FLOW] Failed to send list:', error.message);
             return false;
         }
     }
