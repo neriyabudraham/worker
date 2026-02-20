@@ -89,9 +89,13 @@ class FlowExecutor {
     
     /**
      * Execute the path for a specific button/list item
+     * Uses message ID to find which node sent the message being replied to
      */
     async executeButtonPath(flowId, messageData, originalPayload, contextMessageId, selectedId) {
-        console.log('[FLOW] Executing button/list path for:', selectedId);
+        console.log('[FLOW] ========================================');
+        console.log('[FLOW] Executing button/list path');
+        console.log('[FLOW] Context message ID:', contextMessageId);
+        console.log('[FLOW] Selected ID:', selectedId);
         
         try {
             const context = await this.buildContext(flowId, messageData, originalPayload);
@@ -99,54 +103,92 @@ class FlowExecutor {
                 return { success: false, error: 'Failed to build context' };
             }
             
-            // Find the node that sent the message with this context ID
-            // We need to find which node's message this is a response to
-            const nodeResult = await query(
-                `SELECT fs.current_node_id, fs.variables, fs.id as session_id
-                 FROM flow_sessions fs
-                 WHERE fs.flow_id = $1 AND fs.phone = $2
-                 ORDER BY fs.updated_at DESC LIMIT 1`,
-                [flowId, messageData.phone]
+            // FIRST: Try to find the node that sent this message by message ID
+            let sourceNodeId = null;
+            
+            const sentMsgResult = await query(
+                `SELECT node_id FROM flow_sent_messages WHERE message_id = $1`,
+                [contextMessageId]
             );
             
-            if (nodeResult.rows.length === 0) {
-                console.log('[FLOW] No session found for button path');
-                return { success: false, error: 'No session found' };
+            if (sentMsgResult.rows.length > 0) {
+                sourceNodeId = sentMsgResult.rows[0].node_id;
+                console.log('[FLOW] Found source node by message ID:', sourceNodeId);
+            } else {
+                // Fallback: Try to find from session (for backward compatibility)
+                console.log('[FLOW] Message not found in sent_messages, checking session...');
+                const sessionResult = await query(
+                    `SELECT fs.current_node_id, fs.variables, fs.id as session_id
+                     FROM flow_sessions fs
+                     WHERE fs.flow_id = $1 AND fs.phone = $2 AND fs.status = 'active'
+                     ORDER BY fs.updated_at DESC LIMIT 1`,
+                    [flowId, messageData.phone]
+                );
+                
+                if (sessionResult.rows.length > 0) {
+                    sourceNodeId = sessionResult.rows[0].current_node_id;
+                    context.variables = sessionResult.rows[0].variables || {};
+                    console.log('[FLOW] Found source node from session:', sourceNodeId);
+                }
             }
             
-            const sessionData = nodeResult.rows[0];
-            const currentNodeId = sessionData.current_node_id;
-            context.variables = sessionData.variables || {};
-            
-            console.log('[FLOW] Current node from session:', currentNodeId);
+            if (!sourceNodeId) {
+                console.log('[FLOW] ERROR: Could not find source node');
+                return { success: false, error: 'Could not find source node' };
+            }
             
             // Save selection to variables
+            context.variables = context.variables || {};
             context.variables.last_selection = messageData.message;
             context.variables.last_selection_id = selectedId;
             
-            // Find edges from current node that match the selected button/item
-            // Handle IDs are now simple numeric strings: "0", "1", "2" etc.
-            // But we also support legacy formats for backward compatibility
+            // Find edges from source node that match the selected button/item
+            // Handle IDs are simple numeric strings: "0", "1", "2" etc.
             const numericId = selectedId.replace(/[^0-9]/g, ''); // Extract numeric part
+            
+            console.log('[FLOW] Looking for edges from node:', sourceNodeId);
+            console.log('[FLOW] All edges from this node:', context.edges.filter(e => e.source_node_id === sourceNodeId).map(e => e.source_handle));
+            
             const matchingEdges = context.edges.filter(e => 
-                e.source_node_id === currentNodeId && 
+                e.source_node_id === sourceNodeId && 
                 (e.source_handle === selectedId || 
                  e.source_handle === numericId ||
                  e.source_handle === `btn_${numericId}` || 
                  e.source_handle === `item_${numericId}`)
             );
             
-            console.log('[FLOW] Found', matchingEdges.length, 'matching edges for', selectedId);
+            console.log('[FLOW] Found', matchingEdges.length, 'matching edges for selectedId:', selectedId, 'numericId:', numericId);
             
             if (matchingEdges.length === 0) {
                 console.log('[FLOW] No matching edges found');
-                return { success: false, error: 'No path for this button' };
+                return { success: false, error: 'No path for this selection' };
+            }
+            
+            // Create or get session for tracking
+            let sessionId = null;
+            const existingSession = await query(
+                `SELECT id FROM flow_sessions WHERE flow_id = $1 AND phone = $2 ORDER BY created_at DESC LIMIT 1`,
+                [flowId, messageData.phone]
+            );
+            
+            if (existingSession.rows.length > 0) {
+                sessionId = existingSession.rows[0].id;
+                // Update session to active if it was completed
+                await query(`UPDATE flow_sessions SET status = 'active', updated_at = NOW() WHERE id = $1`, [sessionId]);
+            } else {
+                // Create new session
+                const newSession = await query(
+                    `INSERT INTO flow_sessions (flow_id, phone, current_node_id, variables, status)
+                     VALUES ($1, $2, $3, $4, 'active') RETURNING id`,
+                    [flowId, messageData.phone, sourceNodeId, JSON.stringify(context.variables)]
+                );
+                sessionId = newSession.rows[0].id;
             }
             
             // Execute ALL matching edges (support multiple connections from same button)
             for (const edge of matchingEdges) {
                 console.log('[FLOW] Executing path to:', edge.target_node_id);
-                await this.executeFromNode(context, edge.target_node_id, sessionData.session_id);
+                await this.executeFromNode(context, edge.target_node_id, sessionId);
             }
             
             return { success: true };
@@ -543,6 +585,18 @@ class FlowExecutor {
                 const result = await context.wa.sendButtonMessage(context.phone, text, buttons);
                 console.log('[FLOW] WhatsApp API response:', JSON.stringify(result));
                 
+                // Save message ID -> node mapping for interactive replies
+                const messageId = result?.messages?.[0]?.id;
+                if (messageId) {
+                    console.log('[FLOW] Saving sent message mapping:', messageId, '->', node.node_id);
+                    await query(
+                        `INSERT INTO flow_sent_messages (flow_id, phone, node_id, message_id, node_type)
+                         VALUES ($1, $2, $3, $4, 'message')
+                         ON CONFLICT (message_id) DO NOTHING`,
+                        [context.flowId, context.phone, node.node_id, messageId]
+                    ).catch(err => console.log('[FLOW] Note: Could not save message mapping:', err.message));
+                }
+                
                 // Check if there are edges from button handles
                 // New format: "0", "1", "2"... or legacy "btn_0", "btn_1"...
                 const buttonEdges = context.edges.filter(e => 
@@ -613,6 +667,18 @@ class FlowExecutor {
             });
             
             console.log('[FLOW] WhatsApp API response:', JSON.stringify(result));
+            
+            // Save message ID -> node mapping for interactive replies
+            const messageId = result?.messages?.[0]?.id;
+            if (messageId) {
+                console.log('[FLOW] Saving sent message mapping:', messageId, '->', node.node_id);
+                await query(
+                    `INSERT INTO flow_sent_messages (flow_id, phone, node_id, message_id, node_type)
+                     VALUES ($1, $2, $3, $4, 'list')
+                     ON CONFLICT (message_id) DO NOTHING`,
+                    [context.flowId, context.phone, node.node_id, messageId]
+                ).catch(err => console.log('[FLOW] Note: Could not save message mapping:', err.message));
+            }
             
             // Check if there are edges from item handles
             // New format: "0", "1", "2"... or legacy "btn_0", "item_0"...

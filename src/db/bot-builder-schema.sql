@@ -86,12 +86,60 @@ CREATE TABLE IF NOT EXISTS raffle_participants (
     UNIQUE(flow_id, phone)
 );
 
+-- Flow Sessions (מעקב אחר מיקום המשתמש בתהליך)
+CREATE TABLE IF NOT EXISTS flow_sessions (
+    id SERIAL PRIMARY KEY,
+    flow_id INTEGER NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    current_node_id VARCHAR(100) NOT NULL,
+    waiting_for VARCHAR(50), -- 'button', 'list', 'text', null
+    waiting_options JSONB,
+    variables JSONB DEFAULT '{}',
+    execution_id INTEGER,
+    last_message_id VARCHAR(200),
+    status VARCHAR(20) DEFAULT 'active' CHECK (status IN ('active', 'completed', 'expired')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP,
+    UNIQUE(flow_id, phone)
+);
+
+-- Flow Button Clicks (מעקב אחר לחיצות על כפתורים - כפתור ניתן ללחוץ פעם אחת)
+CREATE TABLE IF NOT EXISTS flow_button_clicks (
+    id SERIAL PRIMARY KEY,
+    flow_id INTEGER NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    message_id VARCHAR(200) NOT NULL, -- WhatsApp message ID
+    button_id VARCHAR(50) NOT NULL, -- btn_0, btn_1, etc.
+    button_title VARCHAR(100),
+    clicked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(flow_id, phone, message_id, button_id)
+);
+
+-- Flow Sent Messages (מיפוי הודעות שנשלחו לצמתים - לזיהוי תגובות)
+CREATE TABLE IF NOT EXISTS flow_sent_messages (
+    id SERIAL PRIMARY KEY,
+    flow_id INTEGER NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    node_id VARCHAR(100) NOT NULL,
+    message_id VARCHAR(200) NOT NULL, -- WhatsApp message ID (wamid.xxx)
+    node_type VARCHAR(50), -- 'message', 'list', etc.
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(message_id)
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_flow_nodes_flow_id ON flow_nodes(flow_id);
 CREATE INDEX IF NOT EXISTS idx_flow_edges_flow_id ON flow_edges(flow_id);
 CREATE INDEX IF NOT EXISTS idx_flow_executions_flow_id ON flow_executions(flow_id);
 CREATE INDEX IF NOT EXISTS idx_flow_executions_phone ON flow_executions(phone);
 CREATE INDEX IF NOT EXISTS idx_raffle_participants_flow_phone ON raffle_participants(flow_id, phone);
+CREATE INDEX IF NOT EXISTS idx_flow_sessions_phone ON flow_sessions(phone);
+CREATE INDEX IF NOT EXISTS idx_flow_sessions_flow ON flow_sessions(flow_id);
+CREATE INDEX IF NOT EXISTS idx_flow_sessions_status ON flow_sessions(status);
+CREATE INDEX IF NOT EXISTS idx_button_clicks_lookup ON flow_button_clicks(flow_id, phone, message_id);
+CREATE INDEX IF NOT EXISTS idx_sent_messages_lookup ON flow_sent_messages(message_id);
+CREATE INDEX IF NOT EXISTS idx_sent_messages_flow_phone ON flow_sent_messages(flow_id, phone);
 
 -- Update timestamp trigger
 CREATE OR REPLACE FUNCTION update_flow_timestamp()
@@ -111,5 +159,11 @@ CREATE TRIGGER update_flows_timestamp
 DROP TRIGGER IF EXISTS update_raffle_participants_timestamp ON raffle_participants;
 CREATE TRIGGER update_raffle_participants_timestamp
     BEFORE UPDATE ON raffle_participants
+    FOR EACH ROW
+    EXECUTE FUNCTION update_flow_timestamp();
+
+DROP TRIGGER IF EXISTS update_flow_sessions_timestamp ON flow_sessions;
+CREATE TRIGGER update_flow_sessions_timestamp
+    BEFORE UPDATE ON flow_sessions
     FOR EACH ROW
     EXECUTE FUNCTION update_flow_timestamp();
