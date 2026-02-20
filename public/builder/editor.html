@@ -594,6 +594,25 @@
       right: -7px !important;
     }
     
+    /* Edge styles */
+    .react-flow__edge {
+      cursor: pointer !important;
+    }
+    .react-flow__edge-path {
+      stroke-width: 2 !important;
+      transition: stroke 0.2s, stroke-width 0.2s !important;
+    }
+    .react-flow__edge:hover .react-flow__edge-path {
+      stroke: #ef4444 !important;
+      stroke-width: 3 !important;
+    }
+    .react-flow__edge-textbg {
+      cursor: pointer !important;
+    }
+    .react-flow__edge-text {
+      cursor: pointer !important;
+    }
+    
     .react-flow__controls {
       left: 16px !important;
       right: auto !important;
@@ -1610,7 +1629,7 @@
         deleteNode(id);
       };
       
-      // Render button/item handles
+      // Render button/item handles - each button gets its own handle
       const renderItemHandles = () => {
         const items = type === 'message' ? buttons : listItems;
         if (items.length === 0) {
@@ -1622,40 +1641,25 @@
           });
         }
         
-        // Multiple output handles for each button/item
-        const handleElements = items.map((item, index) => {
+        // Multiple output handles - one per button/item, NO extra "next" handle
+        return items.map((item, index) => {
           const itemTitle = typeof item === 'string' ? item : (item.title || `פריט ${index + 1}`);
+          // Distribute handles evenly across the node height
           const topPercent = ((index + 1) / (items.length + 1)) * 100;
           return React.createElement(Handle, {
             key: `handle_${index}`,
             type: 'source',
             position: Position.Right,
             id: `btn_${index}`,
+            title: itemTitle, // Tooltip showing button text
             style: { 
               background: config.color,
               top: `${topPercent}%`,
-              transform: 'translate(50%, -50%)'
+              transform: 'translate(50%, -50%)',
+              cursor: 'crosshair'
             }
           });
         });
-        
-        // Also add default "next" handle at bottom
-        handleElements.push(
-          React.createElement(Handle, {
-            key: 'handle_next',
-            type: 'source',
-            position: Position.Right,
-            id: 'next',
-            style: { 
-              background: '#94a3b8',
-              bottom: '10px',
-              top: 'auto',
-              transform: 'translate(50%, 0)'
-            }
-          })
-        );
-        
-        return handleElements;
       };
       
       // Render button preview in node body
@@ -1679,11 +1683,28 @@
                   color: '#16a34a',
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'space-between',
                   gap: '6px'
                 }
               },
-                React.createElement('i', { className: 'fa-solid fa-hand-pointer', style: { fontSize: '0.65rem' } }),
-                btn
+                React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
+                  React.createElement('i', { className: 'fa-solid fa-hand-pointer', style: { fontSize: '0.65rem' } }),
+                  btn
+                ),
+                React.createElement('span', { 
+                  style: { 
+                    background: '#16a34a', 
+                    color: 'white', 
+                    borderRadius: '50%', 
+                    width: '18px', 
+                    height: '18px', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    fontSize: '0.65rem',
+                    fontWeight: 'bold'
+                  } 
+                }, i + 1)
               ))
             )
           );
@@ -1814,19 +1835,48 @@
       }, []);
 
       const onConnect = useCallback((connection) => {
+        // Get the source node to determine edge label
+        const sourceNode = nodes.find(n => n.id === connection.source);
+        let edgeLabel = '';
+        
+        if (sourceNode && connection.sourceHandle) {
+          const btnIndex = connection.sourceHandle.replace('btn_', '').replace('item_', '');
+          if (sourceNode.type === 'message' && sourceNode.data?.buttons?.[btnIndex]) {
+            edgeLabel = sourceNode.data.buttons[btnIndex];
+          } else if (sourceNode.type === 'list' && sourceNode.data?.items?.[btnIndex]) {
+            const item = sourceNode.data.items[btnIndex];
+            edgeLabel = typeof item === 'string' ? item : item.title;
+          }
+        }
+        
         const edge = {
           ...connection,
           id: `edge_${Date.now()}`,
           type: 'smoothstep',
           animated: true,
+          label: edgeLabel || undefined,
+          labelStyle: { fill: '#64748b', fontWeight: 500, fontSize: 11 },
+          labelBgStyle: { fill: 'white', fillOpacity: 0.9 },
+          labelBgPadding: [6, 4],
+          labelBgBorderRadius: 4,
           markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15 }
         };
         setEdges((eds) => addEdge(edge, eds));
         markUnsaved();
-      }, []);
+      }, [nodes]);
 
       const onNodeClick = useCallback((event, node) => {
         openEditor(node);
+      }, []);
+      
+      // Handle edge click - select for deletion
+      const onEdgeClick = useCallback((event, edge) => {
+        event.stopPropagation();
+        if (confirm(`למחוק את החיבור${edge.label ? ` "${edge.label}"` : ''}?`)) {
+          setEdges((eds) => eds.filter(e => e.id !== edge.id));
+          markUnsaved();
+          showToast('החיבור נמחק');
+        }
       }, []);
 
       const onInit = useCallback((instance) => {
@@ -1879,16 +1929,18 @@
           onEdgesChange,
           onConnect,
           onNodeClick,
+          onEdgeClick,
           onInit,
           onPaneClick,
           nodeTypes,
           fitView: true,
           snapToGrid: true,
           snapGrid: [20, 20],
+          deleteKeyCode: 'Delete',
           defaultEdgeOptions: {
             type: 'smoothstep',
             animated: true,
-            style: { strokeWidth: 2, stroke: '#94a3b8' },
+            style: { strokeWidth: 2, stroke: '#94a3b8', cursor: 'pointer' },
             markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12, color: '#94a3b8' }
           },
           connectionLineStyle: { strokeWidth: 2, stroke: '#6366f1' },

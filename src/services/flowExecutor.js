@@ -48,82 +48,112 @@ class FlowExecutor {
      * Handle response to a waiting session (button click, list selection, etc.)
      */
     async handleSessionResponse(session, messageData, originalPayload) {
+        console.log('[FLOW] ========================================');
         console.log('[FLOW] Handling session response');
+        console.log('[FLOW] Session ID:', session.id);
+        console.log('[FLOW] Current node:', session.current_node_id);
+        console.log('[FLOW] Waiting for:', session.waiting_for);
+        console.log('[FLOW] Waiting options:', JSON.stringify(session.waiting_options));
         
         try {
             // Get flow context
             const context = await this.buildContext(session.flow_id, messageData, originalPayload);
             if (!context) {
+                console.log('[FLOW] ERROR: Failed to build context');
                 return { success: false, error: 'Failed to build context' };
             }
             
             // Restore variables from session
             context.variables = session.variables || {};
             context.executionId = session.execution_id;
+            console.log('[FLOW] Restored variables:', JSON.stringify(context.variables));
             
             // Get the button/list selection
             const interactiveMessage = originalPayload?.entry?.[0]?.changes?.[0]?.value?.messages?.[0]?.interactive;
             let selectedId = null;
             let selectedTitle = null;
             
+            console.log('[FLOW] Interactive message:', JSON.stringify(interactiveMessage));
+            
             if (interactiveMessage?.button_reply) {
                 selectedId = interactiveMessage.button_reply.id;
                 selectedTitle = interactiveMessage.button_reply.title;
-                console.log('[FLOW] Button reply:', selectedId, '-', selectedTitle);
+                console.log('[FLOW] BUTTON REPLY detected');
+                console.log('[FLOW]   ID:', selectedId);
+                console.log('[FLOW]   Title:', selectedTitle);
             } else if (interactiveMessage?.list_reply) {
                 selectedId = interactiveMessage.list_reply.id;
                 selectedTitle = interactiveMessage.list_reply.title;
-                console.log('[FLOW] List reply:', selectedId, '-', selectedTitle);
+                console.log('[FLOW] LIST REPLY detected');
+                console.log('[FLOW]   ID:', selectedId);
+                console.log('[FLOW]   Title:', selectedTitle);
             } else {
                 // Text response
                 selectedTitle = messageData.message;
-                console.log('[FLOW] Text response:', selectedTitle);
+                console.log('[FLOW] TEXT response:', selectedTitle);
             }
             
             // Save selected value to variables
             context.variables.last_selection = selectedTitle;
             context.variables.last_selection_id = selectedId;
             
-            // Find the edge that matches the selected button/item
+            // Find the current node
             const currentNode = context.nodes.find(n => n.node_id === session.current_node_id);
             if (!currentNode) {
-                console.log('[FLOW] Current node not found:', session.current_node_id);
+                console.log('[FLOW] ERROR: Current node not found:', session.current_node_id);
                 return { success: false, error: 'Node not found' };
             }
+            console.log('[FLOW] Current node type:', currentNode.type);
+            console.log('[FLOW] Current node config:', JSON.stringify(currentNode.config));
             
             // Get outgoing edges from current node
             const outgoingEdges = context.edges.filter(e => e.source_node_id === session.current_node_id);
-            console.log('[FLOW] Found', outgoingEdges.length, 'outgoing edges');
+            console.log('[FLOW] Outgoing edges count:', outgoingEdges.length);
+            outgoingEdges.forEach((e, i) => {
+                console.log(`[FLOW]   Edge ${i}: sourceHandle="${e.source_handle}" -> ${e.target_node_id}`);
+            });
             
-            // Find the matching edge based on sourceHandle (btn_0, btn_1, etc.)
+            // Find the matching edge based on button index from the waiting options
             let targetEdge = null;
             
-            if (selectedId) {
-                // Try to match by button/item index
-                const btnIndex = selectedId.replace('btn_', '').replace('item_', '');
-                targetEdge = outgoingEdges.find(e => 
-                    e.source_handle === selectedId || 
-                    e.source_handle === `btn_${btnIndex}` ||
-                    e.source_handle === `item_${btnIndex}`
-                );
+            if (selectedId && session.waiting_options) {
+                // Find which button index was clicked
+                const waitingOptions = session.waiting_options;
+                const clickedOption = waitingOptions.find(opt => opt.id === selectedId);
+                
+                if (clickedOption) {
+                    const optionIndex = waitingOptions.indexOf(clickedOption);
+                    console.log('[FLOW] Clicked option index:', optionIndex);
+                    console.log('[FLOW] Looking for edge with sourceHandle: btn_' + optionIndex);
+                    
+                    targetEdge = outgoingEdges.find(e => e.source_handle === `btn_${optionIndex}`);
+                }
+                
+                // Fallback: try direct ID matching
+                if (!targetEdge) {
+                    console.log('[FLOW] Trying direct ID match for:', selectedId);
+                    targetEdge = outgoingEdges.find(e => 
+                        e.source_handle === selectedId || 
+                        e.source_handle === `btn_${selectedId.replace('btn_', '')}` ||
+                        e.source_handle === `item_${selectedId.replace('item_', '')}`
+                    );
+                }
             }
             
-            // If no specific button edge found, use the "next" or default edge
-            if (!targetEdge) {
-                targetEdge = outgoingEdges.find(e => 
-                    e.source_handle === 'next' || 
-                    !e.source_handle || 
-                    e.source_handle === ''
-                ) || outgoingEdges[0];
+            // If no specific edge found, use first available
+            if (!targetEdge && outgoingEdges.length > 0) {
+                console.log('[FLOW] No specific edge found, using first available');
+                targetEdge = outgoingEdges[0];
             }
             
             if (!targetEdge) {
-                console.log('[FLOW] No matching edge found, ending flow');
+                console.log('[FLOW] No outgoing edge found, ending flow');
                 await this.endSession(session.id);
                 return { success: true, ended: true };
             }
             
-            console.log('[FLOW] Following edge to:', targetEdge.target_node_id);
+            console.log('[FLOW] Selected edge:', targetEdge.edge_id);
+            console.log('[FLOW] Target node:', targetEdge.target_node_id);
             
             // Update session to clear waiting state
             await query(
@@ -133,12 +163,14 @@ class FlowExecutor {
             );
             
             // Continue execution from target node
+            console.log('[FLOW] Continuing to node:', targetEdge.target_node_id);
             await this.executeFromNode(context, targetEdge.target_node_id, session.id);
             
             return { success: true };
             
         } catch (error) {
             console.error('[FLOW] Session response error:', error);
+            console.error('[FLOW] Error stack:', error.stack);
             return { success: false, error: error.message };
         }
     }
@@ -353,14 +385,17 @@ class FlowExecutor {
      * Execute message node - returns true if has buttons (wait for response)
      */
     async executeMessageNode(context, config, node, sessionId) {
-        console.log('[FLOW] Message node config:', JSON.stringify(config));
+        console.log('[FLOW] ----------------------------------------');
+        console.log('[FLOW] Executing MESSAGE node');
+        console.log('[FLOW] Node ID:', node.node_id);
+        console.log('[FLOW] Config:', JSON.stringify(config));
         
         const text = this.replaceVariables(config.text || '', context);
         const buttons = config.buttons || [];
         
-        console.log('[FLOW] Sending message to:', context.phone);
-        console.log('[FLOW] Message text:', text ? text.substring(0, 100) : '(empty)');
-        console.log('[FLOW] Buttons count:', buttons.length);
+        console.log('[FLOW] To:', context.phone);
+        console.log('[FLOW] Text:', text ? text.substring(0, 100) : '(empty)');
+        console.log('[FLOW] Buttons:', buttons.length > 0 ? JSON.stringify(buttons) : 'none');
         
         if (!text && buttons.length === 0) {
             console.log('[FLOW] Skipping empty message');
@@ -369,30 +404,36 @@ class FlowExecutor {
         
         try {
             if (buttons.length > 0 && text) {
-                console.log('[FLOW] Sending button message with', buttons.length, 'buttons');
-                await context.wa.sendButtonMessage(context.phone, text, buttons);
+                console.log('[FLOW] Sending BUTTON message');
                 
-                // Set session to wait for button response
+                // Set session to wait BEFORE sending (to ensure we catch quick responses)
                 const waitingOptions = buttons.map((btn, i) => ({
                     id: `btn_${i}`,
                     title: typeof btn === 'string' ? btn : btn.title
                 }));
                 
+                console.log('[FLOW] Setting wait state with options:', JSON.stringify(waitingOptions));
                 await query(
-                    `UPDATE flow_sessions SET waiting_for = 'button', waiting_options = $1 WHERE id = $2`,
-                    [JSON.stringify(waitingOptions), sessionId]
+                    `UPDATE flow_sessions SET waiting_for = 'button', waiting_options = $1, current_node_id = $2 WHERE id = $3`,
+                    [JSON.stringify(waitingOptions), node.node_id, sessionId]
                 );
                 
-                console.log('[FLOW] Waiting for button response');
+                // Now send the message
+                const result = await context.wa.sendButtonMessage(context.phone, text, buttons);
+                console.log('[FLOW] WhatsApp API response:', JSON.stringify(result));
+                console.log('[FLOW] Now waiting for user button click...');
+                
                 return true; // Wait for response
                 
             } else if (text) {
-                console.log('[FLOW] Sending text message');
-                await context.wa.sendTextMessage(context.phone, text);
+                console.log('[FLOW] Sending TEXT message');
+                const result = await context.wa.sendTextMessage(context.phone, text);
+                console.log('[FLOW] WhatsApp API response:', JSON.stringify(result));
                 return false; // Continue immediately
             }
         } catch (error) {
-            console.error('[FLOW] Failed to send message:', error);
+            console.error('[FLOW] Failed to send message:', error.message);
+            console.error('[FLOW] Error details:', JSON.stringify(error));
         }
         
         return false;

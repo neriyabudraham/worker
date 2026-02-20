@@ -234,7 +234,9 @@ async function saveCanvas(req, res, next) {
         }
 
         // Insert edges
+        console.log('[FLOWS] Saving', (edges || []).length, 'edges');
         for (const edge of edges || []) {
+            console.log('[FLOWS] Edge:', edge.id, 'from', edge.source, '(handle:', edge.sourceHandle, ') to', edge.target);
             await query(
                 `INSERT INTO flow_edges (flow_id, edge_id, source_node_id, source_handle, target_node_id, target_handle, label)
                  VALUES ($1, $2, $3, $4, $5, $6, $7)`,
